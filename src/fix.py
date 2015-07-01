@@ -4,6 +4,11 @@
 fix.py
 '''
 
+import leveldb
+import logging
+from corpus import Corpus, Samples
+from protocal import decode_sample_meta
+
 class Fix():
     def __init__(self, samples):
         self.samples = samples
@@ -80,34 +85,6 @@ class Fix():
 
 
 
-    # ---------------- get_bad_samples() ----------------
-    def get_bad_samples(self):
-        samples = self.samples
-
-        none_samples = []
-        empty_samples = []
-        normal_samples = []
-        rowidx = 0
-        for i in samples.db_content.RangeIter():
-            row_id = i[0]
-            if row_id.startswith("__"):
-                continue
-            (sample_id, category, date, title, key, url, msgext) = decode_sample_meta(i[1])
-            (version, content, (cat1, cat2, cat3)) = msgext
-
-            if content is None:
-                none_samples.append((sample_id, url))
-            elif len(content) == 0:
-                empty_samples.append((sample_id, url))
-            else:
-                normal_samples.append((sample_id, url))
-
-            rowidx += 1
-
-        logging.debug("Get %d bad samples. None: %d Empty: %d Normal: %d" % (len(none_samples) + len(empty_samples) +len(normal_samples), len(none_samples), len(empty_samples), len(normal_samples)))
-
-        return none_samples, empty_samples, normal_samples
-
 
     # ---------------- purge() ----------------
     # 删除db_content中所有content == None的记录。
@@ -116,7 +93,7 @@ class Fix():
         samples = self.samples
         db_content = samples.db_content
 
-        none_samples, empty_samples, _ = self.get_bad_samples()
+        none_samples, empty_samples, _ = samples.get_bad_samples()
         purged_samples = [ sample_id for (sample_id, url) in none_samples]
 
         logging.debug("Purgging %d samples...." % (len(purged_samples)))

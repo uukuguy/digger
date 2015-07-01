@@ -14,23 +14,31 @@ from sample_feature_matrix import SampleFeatureMatrix
 from classifier import Classifier
 
 
-def multicategories_train(samples_train, model_name = None):
+def multicategories_train(samples_train, model_name = None, result_dir = None):
     if model_name is None:
         model_name = samples_train.name
-    cfm_file = "%s.cfm" % (model_name)
-    sfm_file = "%s.sfm" % (model_name)
+    if result_dir is None:
+        cfm_file = "%s.cfm" % (model_name)
+        sfm_file = "%s.sfm" % (model_name)
+    else:
+        cfm_file = "%s/%s.cfm" % (result_dir, model_name)
+        sfm_file = "%s/%s.sfm" % (result_dir, model_name)
 
     cfm, sfm = samples_train.get_categories_1_weight_matrix()
     cfm.save(cfm_file)
     sfm.save(sfm_file)
 
-def multicategories_predict(samples_test, model_name):
+def multicategories_predict(samples_test, model_name, result_dir):
     if model_name is None or len(model_name) == 0:
         logging.warn("model_name must not be NULL.")
         return
 
-    cfm_file = "%s.cfm" % (model_name)
-    sfm_file = "%s.sfm" % (model_name)
+    if result_dir is None:
+        cfm_file = "%s.cfm" % (model_name)
+        sfm_file = "%s.sfm" % (model_name)
+    else:
+        cfm_file = "%s/%s.cfm" % (result_dir, model_name)
+        sfm_file = "%s/%s.sfm" % (result_dir, model_name)
 
     logging.debug("Loading train sample feature matrix ...")
     sfm_train = SampleFeatureMatrix()
@@ -61,8 +69,11 @@ def multicategories_predict(samples_test, model_name):
     X_test, y_test = sfm_test.to_sklearn_data()
 
     clf = Classifier()
+
     logging.debug("Classifier training ...")
     clf.train(X_train, y_train)
+
     logging.debug("Classifier predicting ...")
-    clf.predict(X_test, y_test)
+    categories_1_name = samples_test.categories.get_categories_1_names()
+    clf.predict(X_test, y_test, categories_1_name)
 

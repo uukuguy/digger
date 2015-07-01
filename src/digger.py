@@ -5,16 +5,16 @@ Digger
 
 Usage:
   digger.py import [--corpus_dir=<corpus_dir>] [--samples_name=<sn>] [--xls_file=<xls_file>]
-  digger.py export [--corpus_dir=<corpus_dir>] [--samples_name=<sn>] [--xls_file=<xls_file>]
+  digger.py export_samples [--corpus_dir=<corpus_dir>] [--samples_name=<sn>] [--xls_file=<xls_file>]
   digger.py export_urls [--corpus_dir=<corpus_dir>] [--samples_name=<sn>] [--xls_file=<xls_file>]
   digger.py rebuild [--corpus_dir=<corpus_dir>] [--samples_name=<sn>]
   digger.py rebuild_categories [--corpus_dir=<corpus_dir>] [--samples_name=<sn>]
   digger.py test [--corpus_dir=<corpus_dir>] [--positive_name=<pn>]... [--unlabeled_name=<un>] [--model_file=<model_file>] [--svm_file=<svm_file>]
-  digger.py query [--corpus_dir=<corpus_dir>] [--positive_name=<pn>]... [--unlabeled_name=<un>] [--samples_name=<sn>] [--sample_id=<sid>]
   digger.py query_categories [--corpus_dir=<corpus_dir>] [--samples_name=<sn>] [--xls_file=<xls_file>]
+  digger.py query_keywords [--corpus_dir=<corpus_dir>] [--samples_name=<sn>] [--result_dir <rd>]
+  digger.py query_sample [--corpus_dir=<corpus_dir>] [--positive_name=<pn>]... [--unlabeled_name=<un>] [--samples_name=<sn>] [--sample_id=<sid>]
   digger.py refresh [--corpus_dir=<corpus_dir>] [--samples_name=<sn>]
   digger.py show [--corpus_dir=<corpus_dir>] [--samples_name=<sn>]
-  digger.py keywords [--corpus_dir=<corpus_dir>] [--samples_name=<sn>]
   digger.py purge [--corpus_dir=<corpus_dir>] [--samples_name=<sn>]
   digger.py sne [--corpus_dir=<corpus_dir>] [--samples_name=<sn>]
   digger.py train [--corpus_dir=<corpus_dir>] [--samples_name=<sn>] [--model_name=<mn>]
@@ -25,15 +25,16 @@ Usage:
 Options:
   -h --help     Show this screen.
   --version     Show version.
-  --corpus_dir=<corpus_dir>  Corpus root dir [default: po2014.corpus].
+  --corpus_dir=<corpus_dir>  Corpus root dir [default: po2013.corpus].
+  --result_dir=<rd>  Result output dir [default: ./result].
   --positive_name=<pn>  Name of the positive samples [default: 2014_neg_1Q].
   --unlabeled_name=<un>  Name of the unlabeled samples [default: po201405].
-  --model_file=<model_file> The learning model file name.
-  --svm_file=<svm_file> The exported svm file.
-  --samples_name=<sn> The samples's name in corpus.
-  --sample_id=<sid> The sample's id.
-  --xls_file=<xls_file> The Excel file name will be imported.
-  --model_name=<mn> Model name.
+  --model_file=<model_file>  The learning model file name.
+  --svm_file=<svm_file>  The exported svm file.
+  --samples_name=<sn>  The samples's name in corpus.
+  --sample_id=<sid>  The sample's id.
+  --xls_file=<xls_file>  The Excel file name will be imported.
+  --model_name=<mn>  Model name.
 '''
 
 '''
@@ -66,7 +67,7 @@ def do_import(corpus_dir, samples_name, xls_file):
     samples = Samples(corpus, samples_name)
     samples.import_samples(xls_file)
 
-def do_export(corpus_dir, samples_name, xls_file):
+def do_export_samples(corpus_dir, samples_name, xls_file):
     corpus = Corpus(corpus_dir)
     samples = Samples(corpus, samples_name)
     samples.export_samples(xls_file)
@@ -89,21 +90,21 @@ def do_rebuild_categories(corpus_dir, samples_name):
     logging.debug("Rebuild base data...")
     samples.rebuild_categories()
 
-def do_train(corpus_dir, samples_name, model_name):
+def do_train(corpus_dir, samples_name, model_name, result_dir):
     corpus = Corpus(corpus_dir)
     corpus.vocabulary.load()
     samples = Samples(corpus, samples_name)
     samples.load()
     logging.debug("Training ...")
-    multicategories_train(samples, model_name)
+    multicategories_train(samples, model_name, result_dir)
 
-def do_predict(corpus_dir, samples_name, model_name):
+def do_predict(corpus_dir, samples_name, model_name, result_dir):
     corpus = Corpus(corpus_dir)
     corpus.vocabulary.load()
     samples = Samples(corpus, samples_name)
     samples.load()
     logging.debug("Predicting ...")
-    multicategories_predict(samples, model_name)
+    multicategories_predict(samples, model_name, result_dir)
 
 def do_test(corpus_dir, positive_name_list, unlabeled_name, model_file, svm_file):
     corpus = Corpus(corpus_dir)
@@ -124,6 +125,7 @@ def do_test(corpus_dir, positive_name_list, unlabeled_name, model_file, svm_file
 
     PULearning_test(samples_positive, samples_unlabeled)
 
+# ---------------- do_query_sample() ----------------
 def do_query_sample(corpus_dir, samples_name, sample_id):
     corpus = Corpus(corpus_dir)
 
@@ -131,7 +133,9 @@ def do_query_sample(corpus_dir, samples_name, sample_id):
     samples.load()
     samples.query_by_id(sample_id)
 
-def do_query(corpus_dir, positive_name_list, unlabeled_name, sample_id):
+
+# ---------------- do_query_sample_by_pu() ----------------
+def do_query_sample_by_pu(corpus_dir, positive_name_list, unlabeled_name, sample_id):
     corpus = Corpus(corpus_dir)
 
     samples_positive = None
@@ -150,6 +154,7 @@ def do_query(corpus_dir, positive_name_list, unlabeled_name, sample_id):
     corpus.query_by_id(samples_positive, samples_unlabeled, sample_id)
 
 
+# ---------------- do_query_categories() ----------------
 def do_query_categories(corpus_dir, samples_name, xls_file):
     corpus = Corpus(corpus_dir)
 
@@ -157,6 +162,20 @@ def do_query_categories(corpus_dir, samples_name, xls_file):
     samples.load()
 
     samples.query_categories(xls_file)
+    logging.info("Query categories %s/<%s> Done. %s" % (corpus_dir, samples_name, xls_file))
+
+
+# ---------------- do_query_keywords() ----------------
+def do_query_keywords(corpus_dir, samples_name, result_dir):
+    corpus = Corpus(corpus_dir)
+
+    samples = Samples(corpus, samples_name)
+    samples.load()
+
+    samples.show_category_keywords(result_dir)
+    #samples.show_keywords_matrix()
+    logging.info("Query keywords %s/<%s> Done. %s" % (corpus_dir, samples_name, result_dir))
+
 
 def do_refresh(corpus_dir, samples_name):
     corpus = Corpus(corpus_dir)
@@ -174,15 +193,6 @@ def do_show(corpus_dir, samples_name):
 
     samples.show()
 
-def do_keywords(corpus_dir, samples_name):
-    corpus = Corpus(corpus_dir)
-
-    samples = Samples(corpus, samples_name)
-    samples.load()
-
-    samples.show_category_keywords()
-    #samples.show_keywords_matrix()
-
 def do_purge(corpus_dir, samples_name):
     corpus = Corpus(corpus_dir)
 
@@ -191,13 +201,13 @@ def do_purge(corpus_dir, samples_name):
 
     Fix(samples).purge()
 
-def do_sne(corpus_dir, samples_name):
+def do_sne(corpus_dir, samples_name, result_dir):
     corpus = Corpus(corpus_dir)
 
     samples = Samples(corpus, samples_name)
     samples.load()
 
-    sne(samples)
+    sne(samples, result_dir)
 
 from docopt import docopt
 def main():
@@ -207,6 +217,7 @@ def main():
     #print args
 
     corpus_dir = args['--corpus_dir']
+    result_dir = args['--result_dir']
     positive_name_list = args['--positive_name']
     unlabeled_name = args['--unlabeled_name']
     model_file = args['--model_file']
@@ -224,35 +235,35 @@ def main():
         do_test(corpus_dir, positive_name_list, unlabeled_name, model_file, svm_file)
     elif args['import']:
         do_import(corpus_dir, samples_name, xls_file)
-    elif args['export']:
-        do_export(corpus_dir, samples_name, xls_file)
+    elif args['export_samples']:
+        do_export_samples(corpus_dir, samples_name, xls_file)
     elif args['export_urls']:
         do_export_urls(corpus_dir, samples_name, xls_file)
     elif args['rebuild']:
         do_rebuild(corpus_dir, samples_name)
     elif args['rebuild_categories']:
         do_rebuild_categories(corpus_dir, samples_name)
-    elif args['query']:
+    elif args['query_sample']:
         if not samples_name is None:
             do_query_sample(corpus_dir, samples_name, sample_id)
         else:
-            do_query(corpus_dir, positive_name_list, unlabeled_name, sample_id)
+            do_query_sample_by_pu(corpus_dir, positive_name_list, unlabeled_name, sample_id)
     elif args['query_categories']:
         do_query_categories(corpus_dir, samples_name, xls_file)
+    elif args['query_keywords']:
+        do_query_keywords(corpus_dir, samples_name, result_dir)
     elif args['refresh']:
         do_refresh(corpus_dir, samples_name)
     elif args['show']:
         do_show(corpus_dir, samples_name)
-    elif args['keywords']:
-        do_keywords(corpus_dir, samples_name)
     elif args['purge']:
         do_purge(corpus_dir, samples_name)
     elif args['sne']:
-        do_sne(corpus_dir, samples_name)
+        do_sne(corpus_dir, samples_name, result_dir)
     elif args['train']:
-        do_train(corpus_dir, samples_name, model_name)
+        do_train(corpus_dir, samples_name, model_name, result_dir)
     elif args['predict']:
-        do_predict(corpus_dir, samples_name, model_name)
+        do_predict(corpus_dir, samples_name, model_name, result_dir)
 
     e_time = datetime.utcnow()
     t_time = (e_time - s_time)

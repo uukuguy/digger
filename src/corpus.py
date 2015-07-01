@@ -137,6 +137,34 @@ class Samples():
         return total_samples
 
 
+    # ---------------- get_bad_samples() ----------------
+    def get_bad_samples(self):
+        samples = self
+
+        none_samples = []
+        empty_samples = []
+        normal_samples = []
+        rowidx = 0
+        for i in samples.db_content.RangeIter():
+            row_id = i[0]
+            if row_id.startswith("__"):
+                continue
+            (sample_id, category, date, title, key, url, msgext) = decode_sample_meta(i[1])
+            (version, content, (cat1, cat2, cat3)) = msgext
+
+            if content is None:
+                none_samples.append((sample_id, url))
+            elif len(content) == 0:
+                empty_samples.append((sample_id, url))
+            else:
+                normal_samples.append((sample_id, url))
+
+            rowidx += 1
+
+        logging.debug("Get %d bad samples. None: %d Empty: %d Normal: %d" % (len(none_samples) + len(empty_samples) +len(normal_samples), len(none_samples), len(empty_samples), len(normal_samples)))
+
+        return none_samples, empty_samples, normal_samples
+
     # ---------------- get_sample_meta() ----------------
     '''
     sample_meta:
@@ -164,11 +192,11 @@ class Samples():
 
     # ---------------- import_samples() ----------------
     def import_samples(self, xls_file):
-        self.clear_categories()
+        self.categories.clear_categories()
 
-        max_sample_id, batch_content = import_samples_from_xls(self, self.categories, self.max_sample_id, xls_file)
+        max_sample_id, batch_content = import_samples_from_xls(self, self.categories, self.sample_maxid, xls_file)
 
-        self.save_categories()
+        self.categories.save_categories()
 
         self.db_content.Write(batch_content, sync=True)
         self.set_sample_maxid(max_sample_id)
@@ -233,7 +261,14 @@ class Samples():
 
     # ---------------- show_category_keywords() ----------------
     # 按二分类正例度算法，获得每个分类的关键词排序列表。
-    def show_category_keywords(self):
+    def show_category_keywords(self, result_dir):
+        if not os.path.isdir(result_dir):
+            try:
+                os.mkdir(result_dir)
+            except OSError:
+                logging.error("mkdir %s failed." % (result_dir))
+                return
+
         tsm = self.tsm
         tm_matrix = tsm.tm_matrix
         sm_matrix = tsm.sm_matrix
@@ -248,7 +283,7 @@ class Samples():
 
             terms_positive_degree = get_terms_positive_degree_by_category(tsm, positive_samples_list, unlabeled_samples_list)
 
-            pd.save_terms_positive_degree(terms_positive_degree, self.corpus.vocabulary, "./result/keywords_%d_%s.txt" % (category_id, category_name))
+            pd.save_terms_positive_degree(terms_positive_degree, self.corpus.vocabulary, "%s/keywords_%d_%s.txt" % (result_dir, category_id, category_name))
 
             samples_positive = None
             samples_unlabeled = None

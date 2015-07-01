@@ -6,57 +6,60 @@ transform.py -
 
 import leveldb
 import logging
+import msgpack
+import xlwt
 from utils import load_excel_to_rows
 from categories import Categories
+from protocal import decode_sample_meta
 
 # ---------------- import_samples_from_xls() ----------------
 def import_samples_from_xls(samples, categories, max_sample_id, xls_file):
     rows = load_excel_to_rows(xls_file)
 
     batch_content = leveldb.WriteBatch()
-    sample_id = max_sample_maxid
+    sample_id = max_sample_id
     for row in rows:
         category = -1
         if u"CATEGORY" in row:
             category = int(row[u"CATEGORY"])
 
-        content = row[u"CONTENT"].encode('utf-8')
+        content = row[u"CONTENT"]
         if content == "":
             content = None
 
         title = ""
         if u"TITLE" in row:
-            title = row[u"TITLE"].encode('utf-8')
+            title = row[u"TITLE"]
 
         date = ""
         if u"DATE" in row:
             row_date = row[u"DATE"]
             if row_date.__class__ is str:
-                date = row_date.encode('utf-8')
+                date = row_date.decode('utf-8')
             else:
-                date = str(row_date)
+                date = str(row_date).decode('utf-8')
 
         key = ""
         if u"KEY" in row:
             key = row[u"KEY"]
             if key.__class__ != str:
-                key = str(key)
+                key = str(key).decode('utf-8')
 
         url = ""
         if u"URL" in row:
-            url = row[u"URL"].encode('utf-8')
+            url = row[u"URL"]
 
         cat1 = ""
         if u"CAT1" in row:
-            cat1 = row[u"CAT1"].strip().encode('utf-8')
+            cat1 = row[u"CAT1"].strip()
 
         cat2 = ""
         if u"CAT2" in row:
-            cat2 = row[u"CAT2"].strip().encode('utf-8')
+            cat2 = row[u"CAT2"].strip()
 
         cat3 = ""
         if u"CAT3" in row:
-            cat3 = row[u"CAT3"].strip().encode('utf-8')
+            cat3 = row[u"CAT3"].strip()
 
         version = "1"
         msgext = (version, content, (cat1, cat2, cat3))
@@ -71,7 +74,7 @@ def import_samples_from_xls(samples, categories, max_sample_id, xls_file):
             logging.debug("Row: %d/%d %s %s" % (sample_id, len(rows), date, title))
         sample_id += 1
 
-        return sample_id, batch_content
+    return sample_id, batch_content
 
 
 # ---------------- export_samples_to_xls() ----------------

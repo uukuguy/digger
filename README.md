@@ -33,11 +33,17 @@ dead samples:
 # ---------
 ./digger.py query_categories --corpus_dir po2014.corpus --samples_name no2013 --xls_file categories.xls 
 
-./digger.py keywords --corpus_dir po2014.corpus --samples_name no2013
+./digger.py query_keywords --corpus_dir po2014.corpus --samples_name no2013 --result_dir ./result
+
+./digger.py query_sample --corpus_dir po2014.corpus --samples_name no2014 --sample_id 444
 
 ./digger.py show --corpus_dir po2014.corpus --samples_name no2013
 
-./digger.py query --corpus_dir po2014.corpus --samples_name no2014 --sample_id 444
+
+# ---------
+./digger.py export_samples --corpus_dir po2014.corpus --samples_name no2013 --xls_file no2013_samples.xls 
+
+./digger.py export_urls --corpus_dir po2014.corpus --samples_name no2013 --xls_file no2013_urls.xls 
 
 # ---------
 ./digger.py sne --corpus_dir po2014.corpus --samples_name no2013 
@@ -46,6 +52,14 @@ dead samples:
 
 ./digger.py train --corpus_dir po2014.corpus --samples_name no2013 --model_name no2013
 ./digger.py predict --corpus_dir po2014.corpus --samples_name no2013 --model_name no2013
+
+# ---------
+./digger.py import_samples --corpus_dir po2014.corpus --samples_name no2014_cleaned --xls_file ~/apps/digger/data/po2014_cleaned.xls
+
+./digger.py rebuild --corpus_dir po2014.corpus --samples_name no2014_cleaned 
+
+./digger.py purge --corpus_dir po2014.corpus --samples_name no2014_cleaned 
+
 
 
 Dependencies:
@@ -58,6 +72,7 @@ pip install jieba
 pip install textract beautifulsoup4  antiword python-docx python-pptx 
 
 pip install bokeh scaly
+pip install flask tornado
 
 pip install json-c 
 
