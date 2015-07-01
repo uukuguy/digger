@@ -87,6 +87,7 @@ def do_rebuild_categories(corpus_dir, samples_name):
     corpus = Corpus(corpus_dir)
     samples = Samples(corpus, samples_name)
     logging.debug("Rebuild base data...")
+    Fix(samples).fix_categories()
     samples.rebuild_categories()
 
 def do_train(corpus_dir, samples_name, model_name):
