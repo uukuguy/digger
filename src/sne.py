@@ -12,9 +12,9 @@ import matplotlib.pyplot as plt
 from sample_feature_matrix import SampleFeatureMatrix
 from category_feature_matrix import CategoryFeatureMatrix
 
-def sne(samples):
-    csv_file = "./result/%s_sne.csv" % (samples.name)
-    html_file = "%s.html" % (samples.name)
+def sne(samples, result_dir):
+    csv_file = "%s/%s_sne.csv" % (result_dir, samples.name)
+    html_file = "%s/%s.html" % (result_dir, samples.name)
     title = 'Negative Opinions'
 
     cfm, sfm = samples.get_categories_1_weight_matrix()

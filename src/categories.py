@@ -7,8 +7,11 @@ categories.py
 
 import bidict
 import msgpack
+import xlwt
+import logging
 from protocal import decode_sample_meta
 from utils import sorted_dict
+
 
 class Categories():
     # ---------------- __init__() ----------------
@@ -85,6 +88,16 @@ class Categories():
         else:
             return category_name
 
+    # ---------------- get_categories_1_names() ----------------
+    def get_categories_1_names(self):
+        names_map = {}
+        for category_name in self.categories_1:
+            category_id = self.categories_1[category_name]
+            names_map[category_id] = category_name
+        names_list = sorted_dict(names_map)
+        return [ cat_name for (cat_id, cat_name) in names_list]
+
+
     # ---------------- get_category_id_1() ----------------
     def get_category_id_1(self, category_id):
         return int(category_id / 1000000) * 1000000
@@ -114,44 +127,45 @@ class Categories():
     # ---------------- get_category_id() ----------------
     def get_category_id(self, cat1, cat2 = None, cat3 = None):
         if not cat3 is None:
-            category_name = "%s:%s:%s:" % (cat1, cat2, cat3)
+            category_name = u"%s:%s:%s:" % (cat1, cat2, cat3)
             return self.categories_3.get(category_name)
         elif not cat2 is None:
-            category_name = "%s:%s::" % (cat1, cat2)
+            category_name = u"%s:%s::" % (cat1, cat2)
             return self.categories_2.get(category_name)
         elif not cat1 is None:
-            category_name = "%s:::" % (cat1)
+            category_name = u"%s:::" % (cat1)
             return self.category_1.get(category_name)
         else:
             return None
 
     def build_category_id(self, cat1, cat2, cat3):
         print_msg = False
-        if cat1 == u"电力改革" and cat2 == u"三集五大":
-            print_msg = False
+        #if cat1 == u"电力改革" and cat2 == u"三集五大":
+            #print_msg = False
 
         category = -1
-        if cat1 != "":
-            category_1_text = "%s:::" % (cat1)
+        if cat1 != u"":
+            #print cat1.__class__, cat1
+            category_1_text = u"%s:::" % (cat1)
             category_1 = self.categories_1.setdefault(category_1_text, (len(self.categories_1) + 1) * 1000000)
             category = category_1
             if print_msg:
-                print "cat_1 %d" % (category_1)
+                print u"cat_1 %d" % (category_1)
             if cat2 != "":
-                category_2_text = "%s:%s::" % (cat1, cat2)
+                category_2_text = u"%s:%s::" % (cat1, cat2)
                 category_2 = self.categories_2.setdefault(category_2_text, category_1 + (len(self.categories_2) + 1) * 1000)
                 category = category_2
                 if print_msg:
-                    print "cat_2 %d" % (category_2)
+                    print u"cat_2 %d" % (category_2)
                 if cat3 != "":
-                    category_3_text = "%s:%s:%s:" % (cat1, cat2, cat3)
+                    category_3_text = u"%s:%s:%s:" % (cat1, cat2, cat3)
                     category_3 = self.categories_3.setdefault(category_3_text, category_2 + len(self.categories_3) + 1)
                     category = category_3
                     if print_msg:
-                        print "cat_3 %d" % (category_3)
+                        print u"cat_3 %d" % (category_3)
 
         if print_msg:
-            print "%s %s %d" % (cat1, cat2, category)
+            print u"%s %s %d" % (cat1, cat2, category)
         return category
 
 
@@ -233,14 +247,14 @@ class Categories():
     # ---------------- print_categories_info() ----------------
     def print_categories_info(self, categories):
         categories_list = sorted_dict(categories)
-        f = open("./result/categories.txt", 'wb+')
+        #f = open("./result/categories.txt", 'wb+')
         for (category_id, category_used) in categories_list:
             category_name = self.get_category_name(category_id)
             str_category = "%d - %s %d samples" % (category_id, category_name, category_used)
             print str_category
-            f.write("%s\n" % (str_category.encode('utf-8')))
+            #f.write("%s\n" % (str_category.encode('utf-8')))
 
-        f.close()
+        #f.close()
 
         #print "%d unknown categories" % (len(unknown_categories))
         #for category_id in unknown_categories:
