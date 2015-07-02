@@ -257,3 +257,4 @@ class Fix():
             db_content.Delete(str(sample_id))
         logging.debug("Deleted %d invalid class samples." % (len(invalid_class_samples)))
 
+

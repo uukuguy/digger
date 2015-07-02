@@ -8,10 +8,13 @@ mc_learning.py Multi categories learning.
 
 from __future__ import division
 import logging
+import os
 
+from utils import sorted_dict
 from category_feature_matrix import CategoryFeatureMatrix
 from sample_feature_matrix import SampleFeatureMatrix
 from classifier import Classifier
+from categories import Categories
 
 
 def multicategories_train(samples_train, model_name = None, result_dir = None):
@@ -21,6 +24,12 @@ def multicategories_train(samples_train, model_name = None, result_dir = None):
         cfm_file = "%s.cfm" % (model_name)
         sfm_file = "%s.sfm" % (model_name)
     else:
+        if not os.path.isdir(result_dir):
+            try:
+                os.mkdir(result_dir)
+            except OSError:
+                logging.error("mkdir %s failed." % (result_dir))
+                return
         cfm_file = "%s/%s.cfm" % (result_dir, model_name)
         sfm_file = "%s/%s.sfm" % (result_dir, model_name)
 
@@ -37,6 +46,12 @@ def multicategories_predict(samples_test, model_name, result_dir):
         cfm_file = "%s.cfm" % (model_name)
         sfm_file = "%s.sfm" % (model_name)
     else:
+        if not os.path.isdir(result_dir):
+            try:
+                os.mkdir(result_dir)
+            except OSError:
+                logging.error("mkdir %s failed." % (result_dir))
+                return
         cfm_file = "%s/%s.cfm" % (result_dir, model_name)
         sfm_file = "%s/%s.sfm" % (result_dir, model_name)
 
@@ -56,7 +71,8 @@ def multicategories_predict(samples_test, model_name, result_dir):
     for sample_id in tm_matrix:
         sample_info = tm_matrix[sample_id]
         (sample_category, sample_terms, term_map) = sample_info
-        sfm_test.set_sample_category(sample_id, int(sample_category / 1000000) * 1000000)
+        category_1_id = Categories.get_category_1_id(sample_category)
+        sfm_test.set_sample_category(sample_id, category_1_id)
         for feature_id in features:
             if feature_id in term_map:
                 feature_weight = features[feature_id]
@@ -74,6 +90,20 @@ def multicategories_predict(samples_test, model_name, result_dir):
     clf.train(X_train, y_train)
 
     logging.debug("Classifier predicting ...")
-    categories_1_name = samples_test.categories.get_categories_1_names()
-    clf.predict(X_test, y_test, categories_1_name)
+
+    categories = samples_test.get_categories()
+
+    categories_1_names = []
+
+    categories_1_idx_map = {}
+    categories_1_idlist = categories.get_categories_1_idlist()
+    for category_id in categories_1_idlist:
+        category_idx = sfm_test.get_category_idx(category_id)
+        category_name = categories.get_category_name(category_id)
+        categories_1_idx_map[category_idx] = (category_id, category_name)
+    categories_1_idx_list = sorted_dict(categories_1_idx_map)
+    for (category_idx, (category_id, category_name)) in categories_1_idx_list:
+        categories_1_names.append("%s(%d)" % (category_name, category_id))
+
+    clf.predict(X_test, y_test, categories_1_names)
 

@@ -56,12 +56,11 @@ dead samples:
 # ---------
 ./digger.py import_samples --corpus_dir po2014.corpus --samples_name no2014_cleaned --xls_file ~/apps/digger/data/po2014_cleaned.xls
 
-./digger.py rebuild --corpus_dir po2014.corpus --samples_name no2014_cleaned 
-
 ./digger.py purge --corpus_dir po2014.corpus --samples_name no2014_cleaned 
 
 ./digger.py rebuild_categories --corpus_dir po2014.corpus --samples_name no2014_cleaned 
 
+./digger.py rebuild --corpus_dir po2014.corpus --samples_name no2014_cleaned 
 
 
 Dependencies:

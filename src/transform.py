@@ -64,9 +64,9 @@ def import_samples_from_xls(samples, categories, max_sample_id, xls_file):
         version = "1"
         msgext = (version, content, (cat1, cat2, cat3))
 
-        category = categories.build_category_id(cat1, cat2, cat3)
+        category_id = categories.create_or_get_category_id(cat1, cat2, cat3)
 
-        sample_data = (sample_id, category, date, title, key, url, msgext)
+        sample_data = (sample_id, category_id, date, title, key, url, msgext)
         rowstr = msgpack.dumps(sample_data)
         batch_content.Put(str(sample_id), rowstr)
 

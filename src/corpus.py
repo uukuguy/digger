@@ -68,9 +68,9 @@ class Samples():
 
         self.sample_maxid = self.get_sample_maxid()
 
-        self.categories = Categories(self.db_content)
-        self.categories.load_categories()
-        self.categories.print_categories()
+        #self.categories = Categories(self.db_content)
+        #self.categories.load_categories()
+        #self.categories.print_categories()
 
         self.tsm = TermSampleMatrix(self.root_dir, self.corpus.vocabulary)
 
@@ -189,14 +189,19 @@ class Samples():
     def get_samples_list(self):
         return os.listdir(self.samples_dir)
 
+    # ---------------- get_categories() ----------------
+    def get_categories(self):
+        return self.corpus.categories
 
     # ---------------- import_samples() ----------------
     def import_samples(self, xls_file):
-        self.categories.clear_categories()
+        categories = self.get_categories()
 
-        max_sample_id, batch_content = import_samples_from_xls(self, self.categories, self.sample_maxid, xls_file)
+        categories.clear_categories()
 
-        self.categories.save_categories()
+        max_sample_id, batch_content = import_samples_from_xls(self, categories, self.sample_maxid, xls_file)
+
+        categories.save_categories()
 
         self.db_content.Write(batch_content, sync=True)
         self.set_sample_maxid(max_sample_id)
@@ -218,11 +223,59 @@ class Samples():
         logging.debug("Do nothing in show().")
 
 
+    # ---------------- get_categories_useinfo() ----------------
+    def get_categories_useinfo(self):
+        categories = self.get_categories()
+        db_content = self.db_content
+
+        categories_useinfo = {}
+        for category_1 in (~categories.categories_1):
+            categories_useinfo[category_1] = 0
+        for category_2 in (~categories.categories_2):
+            categories_useinfo[category_2] = 0
+        for category_3 in (~categories.categories_3):
+            categories_useinfo[category_3] = 0
+
+        unknown_categories = {}
+
+        rowidx = 0
+        for i in db_content.RangeIter():
+            row_id = i[0]
+            if row_id.startswith("__"):
+                continue
+
+            (sample_id, category_id, date, title, key, url, msgext) = decode_sample_meta(i[1])
+            (version, content, (cat1, cat2, cat3)) = msgext
+
+            if not category_id in categories_useinfo:
+                if category_id in unknown_categories:
+                    unknown_categories[category_id] += 1
+                else:
+                    unknown_categories[category_id] = 1
+            else:
+                categories_useinfo[category_id] += 1
+
+            rowidx += 1
+
+        return categories_useinfo, unknown_categories
+
+    # ---------------- print_categories_useinfo() ----------------
+    def print_categories_useinfo(self, categories_useinfo):
+        categories = self.get_categories()
+
+        categories_useinfo_list = sorted_dict(categories_useinfo)
+        for (category_id, category_used) in categories_useinfo_list:
+            category_name = categories.get_category_name(category_id)
+            str_category = "%d - %s %d samples" % (category_id, category_name, category_used)
+            print str_category
+
     # ---------------- query_categories() ----------------
     def query_categories(self, xls_file):
-        categories = self.categories.get_categories_list()
-        self.categories.export_categories_to_xls(categories, xls_file)
-        self.categories.print_categories_info(categories)
+        categories = self.get_categories()
+
+        categories_useinfo, unknown_categories = self.get_categories_useinfo()
+        categories.export_categories_to_xls(categories_useinfo, xls_file)
+        self.print_categories_useinfo(categories_useinfo)
 
 
     # ---------------- get_categories_1_weight_matrix() ----------------
@@ -234,8 +287,9 @@ class Samples():
         sfm = SampleFeatureMatrix()
         print "len of tm_matrix: %d" % (len(tm_matrix))
 
-        for category_name in self.categories.categories_1:
-            category_id = self.categories.categories_1[category_name]
+        categories = self.get_categories()
+        for category_name in categories.categories_1:
+            category_id = categories.categories_1[category_name]
             positive_samples_list, unlabeled_samples_list = tsm.divide_samples_by_category_1(category_id, True)
 
             print "%s(%d) Positive Samples: %d Unlabeled Samples: %d" % (category_name, category_id, len(positive_samples_list), len(unlabeled_samples_list))
@@ -249,8 +303,8 @@ class Samples():
 
             for sample_id in positive_samples_list:
                 (sample_category, sample_terms, term_map) = tm_matrix[sample_id]
-                category_id_1 = self.categories.get_category_id_1(sample_category)
-                sfm.set_sample_category(sample_id, category_id_1)
+                category_1_id = Categories.get_category_1_id(sample_category)
+                sfm.set_sample_category(sample_id, category_1_id)
                 for term_id in term_map:
                     if term_id in terms_positive_degree:
                         (pd_word, specialty, popularity) = terms_positive_degree[term_id]
@@ -275,8 +329,9 @@ class Samples():
 
         print "len of tm_matrix: %d" % (len(tm_matrix))
 
-        for category_name in self.categories.categories_2:
-            category_id = self.categories.categories_2[category_name]
+        categories = self.get_categories()
+        for category_name in categories.categories_2:
+            category_id = categories.categories_2[category_name]
             positive_samples_list, unlabeled_samples_list = tsm.divide_samples_by_category_2(category_id, True)
 
             print "%s(%d) Positive Samples: %d Unlabeled Samples: %d" % (category_name, category_id, len(positive_samples_list), len(unlabeled_samples_list))
@@ -291,6 +346,8 @@ class Samples():
 
     # ---------------- show_keywords_matrix() ----------------
     def show_keywords_matrix(self):
+        categories = self.get_categories()
+
         # 计算每个词条在各个类别中使用的总次数
         # {term_id: (term_used, standard_deviation, category_info)}
         # category_info - {category_id:(term_weight, term_used_in_category, term_ratio)}
@@ -347,7 +404,7 @@ class Samples():
             term_category_matrix[term_id] = (term_used, 0.0, category_info)
 
             #ratio_mean = ratio_sum / len(category_info)
-            ratio_mean = ratio_sum / len(self.categories.categories_2)
+            ratio_mean = ratio_sum / len(categories.categories_2)
 
             # 计算标准差
 
@@ -357,7 +414,7 @@ class Samples():
                 x = term_ratio - ratio_mean
                 sum_0 += x * x
             #standard_deviation = math.sqrt(sum_0 / len(category_info))
-            standard_deviation = math.sqrt(sum_0 / len(self.categories.categories_2))
+            standard_deviation = math.sqrt(sum_0 / len(categories.categories_2))
             term_category_matrix[term_id] = (term_used, standard_deviation, category_info)
 
         # 输出结果
@@ -376,7 +433,7 @@ class Samples():
             str_term_categories = u""
             category_info_list = sorted_dict_by_values(category_info, reverse = True)
             for (category_id, (term_weight, term_used_in_category, term_ratio)) in category_info_list:
-                category_name = self.categories.get_category_name(category_id)
+                category_name = categories.get_category_name(category_id)
 
                 str_term_categories += " <%s[%d]: %.2f%% (%d)> " % (category_name, category_id, term_ratio * 100, term_used_in_category)
 
@@ -432,6 +489,51 @@ class Samples():
     # ---------------- rebuild() ----------------
     def rebuild(self):
         self.tsm.rebuild(self.db_content)
+
+
+    # ---------------- rebuild_categories() ----------------
+    def rebuild_categories(self):
+
+        samples = self
+        categories = samples.get_categories()
+
+        db_content = samples.db_content
+
+        #categories.clear_categories()
+
+        batch_content = leveldb.WriteBatch()
+        rowidx = 0
+        for i in db_content.RangeIter():
+            row_id = i[0]
+            if row_id.startswith("__"):
+                continue
+            (sample_id, category, date, title, key, url, msgext) = decode_sample_meta(i[1])
+            (version, content, (cat1, cat2, cat3)) = msgext
+            #try:
+                #(version, content, (cat1, cat2, cat3)) = msgext
+            #except ValueError:
+                #bad_samples.append(sample_id)
+                #rowidx += 1
+                #continue
+
+            version = "1"
+            msgext = (version, content, (cat1, cat2, cat3))
+
+            category_id = categories.create_or_get_category_id(cat1, cat2, cat3)
+
+            sample_data = (sample_id, category_id, date, title, key, url, msgext)
+            rowstr = msgpack.dumps(sample_data)
+            batch_content.Put(str(sample_id), rowstr)
+
+            #logging.debug("[%d] %d %d=<%s:%s:%s:>" % (rowidx, sample_id, category_id, cat1, cat2, cat3))
+
+            rowidx += 1
+
+        db_content.Write(batch_content, sync=True)
+
+        categories.save_categories()
+        categories.print_categories()
+
 
     # ---------------- load() ----------------
     def load(self):
@@ -500,6 +602,10 @@ class Corpus():
         self.vocabulary_dir = self.root_dir + "/vocabulary"
         self.vocabulary = Vocabulary(self.vocabulary_dir)
 
+        self.categories_dir = self.root_dir + "/categories"
+        self.categories = Categories(self.categories_dir)
+        self.categories.load_categories()
+        self.categories.print_categories()
 
     # ---------------- close() ----------------
     def close(self):

@@ -8,6 +8,7 @@ categories.py
 import bidict
 import msgpack
 import xlwt
+import leveldb
 import logging
 from protocal import decode_sample_meta
 from utils import sorted_dict
@@ -15,16 +16,27 @@ from utils import sorted_dict
 
 class Categories():
     # ---------------- __init__() ----------------
-    def __init__(self, db_content):
-        self.db_content = db_content
+    def __init__(self, categories_dir):
+        self.root_dir = categories_dir
+        self.db_categories = None
         self.load_categories()
 
 
+    # ---------------- __open_db_categories() ----------------
+    def open_db_categories(self):
+        if self.db_categories is None:
+             self.db_categories = leveldb.LevelDB(self.root_dir)
+        return self.db_categories
+
+    # ---------------- __close_db_categories() ----------------
+    def close_db_categories(self):
+        self.db_categories = None
+
     # ---------------- load_a_categories() ----------------
-    def load_a_categories(self, categories_name):
+    def load_a_categories(self, db_categories, categories_name):
         categories = bidict.bidict()
         try:
-            str_categories = self.db_content.Get(categories_name)
+            str_categories = db_categories.Get(categories_name)
             dict_categories = msgpack.loads(str_categories)
             for k in dict_categories:
                 category_id = dict_categories[k]
@@ -37,24 +49,28 @@ class Categories():
 
     # ---------------- load_categories() ----------------
     def load_categories(self):
-        self.categories_1 = self.load_a_categories("__categories_1__")
-        self.categories_2 = self.load_a_categories("__categories_2__")
-        self.categories_3 = self.load_a_categories("__categories_3__")
+        db_categories = self.open_db_categories()
+        self.categories_1 = self.load_a_categories(db_categories, "__categories_1__")
+        self.categories_2 = self.load_a_categories(db_categories, "__categories_2__")
+        self.categories_3 = self.load_a_categories(db_categories, "__categories_3__")
+        self.close_db_categories()
 
     # ---------------- save_a_categories() ----------------
-    def save_a_categories(self, categories, categories_name):
+    def save_a_categories(self, db_categories, categories, categories_name):
         dict_categories = {}
         for k in categories:
             category_id = categories[k]
             k0 = k.encode('utf-8')
             dict_categories[k0] = category_id
-        self.db_content.Put(categories_name, msgpack.dumps(dict_categories))
+        db_categories.Put(categories_name, msgpack.dumps(dict_categories))
 
     # ---------------- save_categories() ----------------
     def save_categories(self):
-        self.save_a_categories(self.categories_1, "__categories_1__")
-        self.save_a_categories(self.categories_2, "__categories_2__")
-        self.save_a_categories(self.categories_3, "__categories_3__")
+        db_categories = self.open_db_categories()
+        self.save_a_categories(db_categories, self.categories_1, "__categories_1__")
+        self.save_a_categories(db_categories, self.categories_2, "__categories_2__")
+        self.save_a_categories(db_categories, self.categories_3, "__categories_3__")
+        self.close_db_categories()
 
     # ---------------- clear_categories() ----------------
     def clear_categories(self):
@@ -97,14 +113,36 @@ class Categories():
         names_list = sorted_dict(names_map)
         return [ cat_name for (cat_id, cat_name) in names_list]
 
+    # ---------------- get_categories_1_idlist() ----------------
+    def get_categories_1_idlist(self):
+        idlist = []
+        for category_name in self.categories_1:
+            category_id = self.categories_1[category_name]
+            idlist.append(category_id)
+        return idlist
 
-    # ---------------- get_category_id_1() ----------------
-    def get_category_id_1(self, category_id):
+
+    # ---------------- get_category_1_id() ----------------
+    @staticmethod
+    def get_category_1_id(category_id):
         return int(category_id / 1000000) * 1000000
 
-    # ---------------- get_category_id_2() ----------------
-    def get_category_id_2(self, category_id):
+    # ---------------- get_category_2_id() ----------------
+    @staticmethod
+    def get_category_2_id(category_id):
         return int(category_id / 1000) * 1000
+
+    # ---------------- get_category_1_name() ----------------
+    @staticmethod
+    def get_category_1_name(category_id):
+        category_1_id = Categories.get_category_1_id(category_id)
+        return get_category_name(category_1_id)
+
+    # ---------------- get_category_2_name() ----------------
+    @staticmethod
+    def get_category_2_name(category_id):
+        category_2_id = Categories.get_category_2_id(category_id)
+        return get_category_name(category_2_id)
 
     # ---------------- print_categories() ----------------
     def print_categories(self):
@@ -138,10 +176,10 @@ class Categories():
         else:
             return None
 
-    def build_category_id(self, cat1, cat2, cat3):
+    def create_or_get_category_id(self, cat1, cat2, cat3):
         print_msg = False
-        #if cat1 == u"电力改革" and cat2 == u"三集五大":
-            #print_msg = False
+        if cat1 == u"依法治企" and cat2 == u"供电服务":
+            print_msg = True
 
         category = -1
         if cat1 != u"":
@@ -169,102 +207,10 @@ class Categories():
         return category
 
 
-    # ---------------- rebuild_categories() ----------------
-    def rebuild_categories(self):
-
-        self.clear_categories()
-
-        batch_content = leveldb.WriteBatch()
-        rowidx = 0
-        for i in self.db_content.RangeIter():
-            row_id = i[0]
-            if row_id.startswith("__"):
-                continue
-            (sample_id, category, date, title, key, url, msgext) = decode_sample_meta(i[1])
-            (version, content, (cat1, cat2, cat3)) = msgext
-            #try:
-                #(version, content, (cat1, cat2, cat3)) = msgext
-            #except ValueError:
-                #bad_samples.append(sample_id)
-                #rowidx += 1
-                #continue
-
-            version = "1"
-            msgext = (version, content, (cat1, cat2, cat3))
-
-            category_id = self.build_category_id(cat1, cat2, cat3)
-
-            sample_data = (sample_id, category_id, date, title, key, url, msgext)
-            rowstr = msgpack.dumps(sample_data)
-            batch_content.Put(str(sample_id), rowstr)
-
-            #logging.debug("[%d] %d %d=<%s:%s:%s:>" % (rowidx, sample_id, category_id, cat1, cat2, cat3))
-
-            rowidx += 1
-
-        #logging.debug("Delete %d bad samples." % (len(bad_samples)))
-        #for sample_id in bad_samples:
-            #self.db_content.Delete(str(sample_id))
-
-        self.db_content.Write(batch_content, sync=True)
-        self.save_categories()
-        self.print_categories()
-
-
-    # ---------------- get_categories_list() ----------------
-    def get_categories_list(self):
-        categories = {}
-        for category_1 in (~self.categories_1):
-            categories[category_1] = 0
-        for category_2 in (~self.categories_2):
-            categories[category_2] = 0
-        for category_3 in (~self.categories_3):
-            categories[category_3] = 0
-
-        unknown_categories = {}
-
-        rowidx = 0
-        for i in self.db_content.RangeIter():
-            row_id = i[0]
-            if row_id.startswith("__"):
-                continue
-
-            (sample_id, category, date, title, key, url, msgext) = decode_sample_meta(i[1])
-            (version, content, (cat1, cat2, cat3)) = msgext
-
-            if not category in categories:
-                if category in unknown_categories:
-                    unknown_categories[category] += 1
-                else:
-                    unknown_categories[category] = 1
-            else:
-                categories[category] += 1
-
-            rowidx += 1
-
-        return categories
-
-    # ---------------- print_categories_info() ----------------
-    def print_categories_info(self, categories):
-        categories_list = sorted_dict(categories)
-        #f = open("./result/categories.txt", 'wb+')
-        for (category_id, category_used) in categories_list:
-            category_name = self.get_category_name(category_id)
-            str_category = "%d - %s %d samples" % (category_id, category_name, category_used)
-            print str_category
-            #f.write("%s\n" % (str_category.encode('utf-8')))
-
-        #f.close()
-
-        #print "%d unknown categories" % (len(unknown_categories))
-        #for category_id in unknown_categories:
-            #category_name = self.get_category_name(category_id)
-            #category_used = unknown_categories[category_id]
-            #print "<Unknown> %d - %s %d samples." % (category_id, category_name , category_used)
-
-
     # ---------------- export_categories_to_xls() ----------------
-    def export_categories_to_xls(self, categories, xls_file):
+    def export_categories_to_xls(self, categories_useinfo, xls_file):
+        categories = self
+
         if xls_file is None:
             return
 
@@ -278,7 +224,7 @@ class Categories():
         ws.write(0, 4, 'SAMPLES')
 
         rowidx = 1
-        categories_list = sorted_dict(categories)
+        categories_list = sorted_dict(categories_useinfo)
         for (category_id, category_used) in categories_list:
             if category_id % 1000 == 0:
                 if category_id % 1000000 == 0:
@@ -294,9 +240,9 @@ class Categories():
                 category_2 = int(category_id / 1000) * 1000
                 category_1 = int(category_id / 1000000) * 1000000
 
-            category_1_name = self.get_category_name(category_1)
-            category_2_name = self.get_category_name(category_2)
-            category_3_name = self.get_category_name(category_3)
+            category_1_name = categories.get_category_name(category_1)
+            category_2_name = categories.get_category_name(category_2)
+            category_3_name = categories.get_category_name(category_3)
 
             logging.debug("id:%d 1:%d 2:%d 3:%d" % ( category_id, category_1, category_2, category_3))
 
@@ -310,4 +256,5 @@ class Categories():
 
         wb.save(xls_file)
         logging.debug("Export categories to xls file %s" % (xls_file) )
+
 

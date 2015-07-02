@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 
 from sample_feature_matrix import SampleFeatureMatrix
 from category_feature_matrix import CategoryFeatureMatrix
+from categories import Categories
 
 def sne(samples, result_dir):
     csv_file = "%s/%s_sne.csv" % (result_dir, samples.name)
@@ -21,20 +22,23 @@ def sne(samples, result_dir):
     X, y = sfm.to_sklearn_data()
     total_categories = sfm.get_num_categories()
 
+    logging.debug("Do TSNE...")
     model = TSNE(n_components=2, random_state=0)
     X_sne = model.fit_transform(X)
 
+    logging.debug("Saving %s..." % (csv_file))
     f = open(csv_file, "wb+")
     f.write("x,y,cat,t\n")
     rowidx = 0
+    categories = samples.get_categories()
     for row in X_sne:
         for col in row:
             f.write("%.3f," % (col))
         category_idx = y[rowidx]
         category_id = sfm.get_category_id(category_idx)
-        category_id_1 = int(category_id / 1000000) * 1000000
-        category_name = (~samples.categories.categories_1)[category_id_1]
-        f.write("%s,%d\n" % (category_name.encode('utf-8'), int(category_id_1 / 1000000)))
+        category_1_id = Categories.get_category_1_id(category_id)
+        category_name = "%s(%d)" % ((~categories.categories_1)[category_1_id], category_1_id)
+        f.write("%s,%d\n" % (category_name.encode('utf-8'), int(category_1_id / 1000000)))
         rowidx += 1
     f.close()
 

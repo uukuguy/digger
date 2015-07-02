@@ -4,7 +4,7 @@
 Digger
 
 Usage:
-  digger.py import [--corpus_dir=<corpus_dir>] [--samples_name=<sn>] [--xls_file=<xls_file>]
+  digger.py import_samples [--corpus_dir=<corpus_dir>] [--samples_name=<sn>] [--xls_file=<xls_file>]
   digger.py export_samples [--corpus_dir=<corpus_dir>] [--samples_name=<sn>] [--xls_file=<xls_file>]
   digger.py export_urls [--corpus_dir=<corpus_dir>] [--samples_name=<sn>] [--xls_file=<xls_file>]
   digger.py rebuild [--corpus_dir=<corpus_dir>] [--samples_name=<sn>]
@@ -61,7 +61,7 @@ from fix import Fix
   U - Unlabeled samples
 '''
 
-def do_import(corpus_dir, samples_name, xls_file):
+def do_import_samples(corpus_dir, samples_name, xls_file):
     corpus = Corpus(corpus_dir)
     corpus.vocabulary.load()
     samples = Samples(corpus, samples_name)
@@ -234,8 +234,8 @@ def main():
     xls_file = args['--xls_file']
     if args['test']:
         do_test(corpus_dir, positive_name_list, unlabeled_name, model_file, svm_file)
-    elif args['import']:
-        do_import(corpus_dir, samples_name, xls_file)
+    elif args['import_samples']:
+        do_import_samples(corpus_dir, samples_name, xls_file)
     elif args['export_samples']:
         do_export_samples(corpus_dir, samples_name, xls_file)
     elif args['export_urls']:

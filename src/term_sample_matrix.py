@@ -34,6 +34,7 @@ import numpy as np
 from utils import save_as_svm_file
 from vocabulary import Vocabulary
 from sample_feature_matrix import SampleFeatureMatrix
+from categories import Categories
 
 class TermSampleMatrix():
 
@@ -296,9 +297,8 @@ class TermSampleMatrix():
 
                 sm_matrix[term_id] = (term_id, (term_used, term_samples + 1, sample_map))
 
-
-            if rowidx % 1000 == 0:
-                logging.debug("rebuild_sample_matrix() %d/%d" % (rowidx, len(tm_matrix)))
+            #if rowidx % 1000 == 0:
+                #logging.debug("rebuild_sample_matrix() %d/%d" % (rowidx, len(tm_matrix)))
             rowidx += 1
 
         self.total_terms_used = total_terms_used
@@ -341,9 +341,10 @@ class TermSampleMatrix():
         terms = {}
         category_map = {}
         for sample_id in self.tm_matrix:
-            (category, sample_terms, term_map) = self.tm_matrix[sample_id]
+            (category_id, sample_terms, term_map) = self.tm_matrix[sample_id]
 
-            category_id_1 = int(category / 1000000)
+            category_1_id = Categories.get_category_1_id(category_id)
+            category_id_1 = category_1_id / 1000000
             category_idx = category_map.setdefault(category_id_1, len(category_map))
             categories.append(category_idx)
             #categories.append(category)
@@ -404,7 +405,8 @@ class TermSampleMatrix():
                 is_positive = True
             else:
                 if include_sub_categories:
-                    if int(category_id / 1000000) * 1000000 == category_positive:
+                    category_1_id = Categories.get_category_1_id(category_id)
+                    if category_1_id == category_positive:
                         is_positive = True
 
             #logging.debug("category_id:%d category_positive:%d is_positive:%d" % (category_id, category_positive, is_positive) )
@@ -421,13 +423,16 @@ class TermSampleMatrix():
         positive_samples_list = []
         unlabeled_samples_list = []
 
-        category_1 = int(category_positive / 1000000) * 1000000
-
+        category_1 = Categories.get_category_1_id(category_positive)
 
         for sample_id in self.tm_matrix:
             (category_id, sample_terms, term_map) = self.tm_matrix[sample_id]
-            category_id_1 = int(category_id / 1000000) * 1000000
-            if category_id_1 != category_1:
+
+            #if category_id == 2054000:
+                #logging.debug("category_id:%d category_positive:%d " % (category_id, category_positive) )
+
+            category_1_id = Categories.get_category_1_id(category_id)
+            if category_1_id != category_1:
                 continue
 
             is_positive = False
@@ -435,6 +440,7 @@ class TermSampleMatrix():
                 is_positive = True
 
             #logging.debug("category_id:%d category_positive:%d is_positive:%d" % (category_id, category_positive, is_positive) )
+
             if is_positive:
                 positive_samples_list.append(sample_id)
             else:
