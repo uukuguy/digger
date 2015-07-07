@@ -74,14 +74,10 @@ class Samples():
 
         self.tsm = TermSampleMatrix(self.root_dir, self.corpus.vocabulary)
 
-    def get_term_matrix(self):
-        return self.tsm.tm_matrix
-
-    def get_sample_matrix(self):
-        return self.tsm.sm_matrix
 
     def merge(self, other_samples):
         self.tsm.merge(other_samples.tsm)
+
 
     # ---------------- clear() ----------------
     def clear(self):
@@ -179,7 +175,7 @@ class Samples():
             return None
 
     # ---------------- clone() ----------------
-    def clone(self, samples_name, samples_list):
+    def clone(self, samples_name, samples_list = None):
         samples = Samples(self.corpus, samples_name)
         samples.tsm = self.tsm.clone(samples_list)
         return samples
@@ -281,11 +277,8 @@ class Samples():
     # ---------------- get_categories_1_weight_matrix() ----------------
     def get_categories_1_weight_matrix(self):
         tsm = self.tsm
-        tm_matrix = tsm.tm_matrix
-        sm_matrix = tsm.sm_matrix
         cfm = CategoryFeatureMatrix()
         sfm = SampleFeatureMatrix()
-        print "len of tm_matrix: %d" % (len(tm_matrix))
 
         categories = self.get_categories()
         for category_name in categories.categories_1:
@@ -302,7 +295,7 @@ class Samples():
             cfm.set_features(category_id, features)
 
             for sample_id in positive_samples_list:
-                (sample_category, sample_terms, term_map) = tm_matrix[sample_id]
+                (sample_category, sample_terms, term_map) = tsm.get_sample_row(sample_id)
                 category_1_id = Categories.get_category_1_id(sample_category)
                 sfm.set_sample_category(sample_id, category_1_id)
                 for term_id in term_map:
@@ -324,10 +317,6 @@ class Samples():
                 return
 
         tsm = self.tsm
-        tm_matrix = tsm.tm_matrix
-        sm_matrix = tsm.sm_matrix
-
-        print "len of tm_matrix: %d" % (len(tm_matrix))
 
         categories = self.get_categories()
         for category_name in categories.categories_2:
@@ -353,13 +342,11 @@ class Samples():
         # category_info - {category_id:(term_weight, term_used_in_category, term_ratio)}
         term_category_matrix = {}
 
-        tm_matrix = self.tsm.tm_matrix
-        sm_matrix = self.tsm.sm_matrix
+        tsm = self.tsm
+        sfm_tfidf = tsm.tranform_tfidf()
 
-        sfm_tfidf = self.tsm.tranform_tfidf()
-
-        for term_id in sm_matrix:
-            (_, (term_used, term_samples, sample_map)) = sm_matrix[term_id]
+        for (term_id, term_info) in tsm.term_matrix_iterator():
+            (_, (term_used, term_samples, sample_map)) = term_info
             if term_used < 50:
                 continue
             category_info = {}
@@ -367,7 +354,7 @@ class Samples():
                 (_, _, category_info) = term_category_matrix[term_id]
             for sample_id in sample_map:
                 term_used_in_sample = sample_map[sample_id]
-                (category_id, sample_terms, term_map) = tm_matrix[sample_id]
+                (category_id, sample_terms, term_map) = tsm.get_sample_row(sample_id)
 
                 term_weight = 0.0
                 term_used_in_category = 0
@@ -622,6 +609,7 @@ class Corpus():
         save_term_matrix_as_svm_file(tm_tfidf, svm_file)
 
 
+    # ---------------- transform_sensitive_terms() ----------------
     def transform_sensitive_terms(self, sensitive_words, vocabulary):
         sensitive_terms = {}
         if not sensitive_words is None:
@@ -631,6 +619,7 @@ class Corpus():
                 sensitive_terms[term_id] = w
         return sensitive_terms
 
+    # ---------------- query_by_id() ----------------
     def query_by_id(self, samples_positive, samples_unlabeled, sample_id):
 
         sensitive_words = {

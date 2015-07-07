@@ -5,6 +5,7 @@ protocal.py - 序列化协议
 '''
 import msgpack
 
+# ---------------- decode_sample_meta() ----------------
 def decode_sample_meta(str_sample_meta):
     (sample_id, category, date, title, key, url, msgext) = msgpack.loads(str_sample_meta)
     version = u""

@@ -176,6 +176,7 @@ class Categories():
         else:
             return None
 
+    # ---------------- create_or_get_category_id() ----------------
     def create_or_get_category_id(self, cat1, cat2, cat3):
         print_msg = False
         if cat1 == u"依法治企" and cat2 == u"供电服务":

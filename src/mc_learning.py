@@ -17,6 +17,7 @@ from classifier import Classifier
 from categories import Categories
 
 
+# ---------------- multicategories_train() ----------------
 def multicategories_train(samples_train, model_name = None, result_dir = None):
     if model_name is None:
         model_name = samples_train.name
@@ -37,6 +38,8 @@ def multicategories_train(samples_train, model_name = None, result_dir = None):
     cfm.save(cfm_file)
     sfm.save(sfm_file)
 
+
+# ---------------- multicategories_predict() ----------------
 def multicategories_predict(samples_test, model_name, result_dir):
     if model_name is None or len(model_name) == 0:
         logging.warn("model_name must not be NULL.")
@@ -67,11 +70,12 @@ def multicategories_predict(samples_test, model_name, result_dir):
     sfm_test = SampleFeatureMatrix(sfm_train.get_category_id_map(), sfm_train.get_feature_id_map())
 
     features = cfm_train.get_features(category_id)
-    tm_matrix = samples_test.tsm.tm_matrix
-    for sample_id in tm_matrix:
-        sample_info = tm_matrix[sample_id]
-        (sample_category, sample_terms, term_map) = sample_info
+
+    for sample_id in samples_test.tsm.sample_matrix():
+        (sample_category, sample_terms, term_map) = samples_test.tsm.get_sample_row(sample_id)
+
         category_1_id = Categories.get_category_1_id(sample_category)
+
         sfm_test.set_sample_category(sample_id, category_1_id)
         for feature_id in features:
             if feature_id in term_map:

@@ -32,10 +32,10 @@ def PULearning_test(samples_positive, samples_unlabeled):
 
     pd.save_terms_positive_degree(terms_positive_degree, vocabulary, "./result/keywords.txt")
 
-    #samples_positive_degree_P = pd.calculate_samples_positive_degree(samples_positive.get_term_matrix(), terms_positive_degree, max_terms = 20)
+    #samples_positive_degree_P = pd.calculate_samples_positive_degree(tsm_positive, terms_positive_degree, max_terms = 20)
     #pd.save_samples_positive_degree(samples_positive, samples_positive_degree_P)
 
-    samples_positive_degree_U = pd.calculate_samples_positive_degree(samples_unlabeled.get_term_matrix(), terms_positive_degree, max_terms = 20)
+    samples_positive_degree_U = pd.calculate_samples_positive_degree(tsm_unlabeled, terms_positive_degree, max_terms = 20)
     pd.save_samples_positive_degree(samples_unlabeled, samples_positive_degree_U)
 
     #export_train_svm_file("./result/train.svm", terms_positive_degree, tm_positive, sample_V_P, sample_V_U, tm_unlabeled)

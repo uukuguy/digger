@@ -28,6 +28,8 @@ def good_dict_string(thedict, reverse=False):
 
 # ================ Excel Reader ================
 import xlrd, xlwt, xlsxwriter
+
+# ---------------- open_excel() ----------------
 def open_excel(file):
     try:
         data = xlrd.open_workbook(file)
@@ -35,6 +37,8 @@ def open_excel(file):
     except Exception, e:
         print str(e)
 
+
+# ---------------- load_excel_to_rows() ----------------
 def load_excel_to_rows(xls_file, sheet_idx = 0, colname_idx = 0):
     rows = []
 
@@ -70,6 +74,8 @@ def load_excel_to_rows(xls_file, sheet_idx = 0, colname_idx = 0):
     print "Load %s Done." % (xls_file)
     return random_rows
 
+
+# ---------------- save_as_svm_file() ----------------
 def save_as_svm_file(f, X, y):
     if f.__class__ is file:
         file_out = f

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
+
 '''
 Digger
 
@@ -9,16 +10,17 @@ Usage:
   digger.py export_urls [--corpus_dir=<corpus_dir>] [--samples_name=<sn>] [--xls_file=<xls_file>]
   digger.py rebuild [--corpus_dir=<corpus_dir>] [--samples_name=<sn>]
   digger.py rebuild_categories [--corpus_dir=<corpus_dir>] [--samples_name=<sn>]
-  digger.py test [--corpus_dir=<corpus_dir>] [--positive_name=<pn>]... [--unlabeled_name=<un>] [--model_file=<model_file>] [--svm_file=<svm_file>]
+  digger.py test [--corpus_dir=<corpus_dir>] [--positive_name=<pn>] [--unlabeled_name=<un>] [--model_file=<model_file>] [--svm_file=<svm_file>]
   digger.py query_categories [--corpus_dir=<corpus_dir>] [--samples_name=<sn>] [--xls_file=<xls_file>]
   digger.py query_keywords [--corpus_dir=<corpus_dir>] [--samples_name=<sn>] [--result_dir <rd>]
-  digger.py query_sample [--corpus_dir=<corpus_dir>] [--positive_name=<pn>]... [--unlabeled_name=<un>] [--samples_name=<sn>] [--sample_id=<sid>]
+  digger.py query_sample [--corpus_dir=<corpus_dir>] [--positive_name=<pn>] [--unlabeled_name=<un>] [--samples_name=<sn>] [--sample_id=<sid>]
   digger.py refresh [--corpus_dir=<corpus_dir>] [--samples_name=<sn>]
   digger.py show [--corpus_dir=<corpus_dir>] [--samples_name=<sn>]
   digger.py purge [--corpus_dir=<corpus_dir>] [--samples_name=<sn>]
   digger.py sne [--corpus_dir=<corpus_dir>] [--samples_name=<sn>]
   digger.py train [--corpus_dir=<corpus_dir>] [--samples_name=<sn>] [--model_name=<mn>]
   digger.py predict [--corpus_dir=<corpus_dir>] [--samples_name=<sn>] [--model_name=<mn>]
+  digger.py iem [--corpus_dir=<corpus_dir>] [--positive_name=<pn>] [--unlabeled_name=<un>] [--result_dir <rd>]
   digger.py (-h | --help)
   digger.py --version
 
@@ -35,6 +37,7 @@ Options:
   --sample_id=<sid>  The sample's id.
   --xls_file=<xls_file>  The Excel file name will be imported.
   --model_name=<mn>  Model name.
+
 '''
 
 '''
@@ -47,6 +50,7 @@ Options:
 
 from datetime import datetime
 import logging
+from docopt import docopt
 from globals import *
 from corpus import Corpus, Samples
 from pu_learning import PULearning_test, test_corpus
@@ -61,22 +65,26 @@ from fix import Fix
   U - Unlabeled samples
 '''
 
+# ---------------- do_import_samples() ----------------
 def do_import_samples(corpus_dir, samples_name, xls_file):
     corpus = Corpus(corpus_dir)
     corpus.vocabulary.load()
     samples = Samples(corpus, samples_name)
     samples.import_samples(xls_file)
 
+# ---------------- do_export_samples() ----------------
 def do_export_samples(corpus_dir, samples_name, xls_file):
     corpus = Corpus(corpus_dir)
     samples = Samples(corpus, samples_name)
     samples.export_samples(xls_file)
 
+# ---------------- do_export_urls() ----------------
 def do_export_urls(corpus_dir, samples_name, xls_file):
     corpus = Corpus(corpus_dir)
     samples = Samples(corpus, samples_name)
     samples.export_urls(xls_file)
 
+# ---------------- do_rebuild() ----------------
 def do_rebuild(corpus_dir, samples_name):
     corpus = Corpus(corpus_dir)
     corpus.vocabulary.load()
@@ -84,6 +92,7 @@ def do_rebuild(corpus_dir, samples_name):
     logging.debug("Rebuild base data...")
     samples.rebuild()
 
+# ---------------- do_rebuild_categories() ----------------
 def do_rebuild_categories(corpus_dir, samples_name):
     corpus = Corpus(corpus_dir)
     samples = Samples(corpus, samples_name)
@@ -91,6 +100,7 @@ def do_rebuild_categories(corpus_dir, samples_name):
     Fix(samples).fix_categories()
     samples.rebuild_categories()
 
+# ---------------- do_train() ----------------
 def do_train(corpus_dir, samples_name, model_name, result_dir):
     corpus = Corpus(corpus_dir)
     corpus.vocabulary.load()
@@ -99,6 +109,7 @@ def do_train(corpus_dir, samples_name, model_name, result_dir):
     logging.debug("Training ...")
     multicategories_train(samples, model_name, result_dir)
 
+# ---------------- do_predict() ----------------
 def do_predict(corpus_dir, samples_name, model_name, result_dir):
     corpus = Corpus(corpus_dir)
     corpus.vocabulary.load()
@@ -107,6 +118,30 @@ def do_predict(corpus_dir, samples_name, model_name, result_dir):
     logging.debug("Predicting ...")
     multicategories_predict(samples, model_name, result_dir)
 
+# ---------------- do_iem() ----------------
+from reliable_negatives import ReliableNegatives, rn_iem
+def do_iem(corpus_dir, positive_name, unlabeled_name, result_dir):
+    corpus = Corpus(corpus_dir)
+    corpus.vocabulary.load()
+    samples_positive = Samples(corpus, positive_name)
+    samples_positive.load()
+    #samples_unlabeled = Samples(corpus, unlabeled_name)
+    #samples_unlabeled.load()
+
+    logging.debug("I-EM ...")
+
+    positive_category_id = 2000000
+    positive_ratio = 0.8
+    tsm = samples_positive.tsm
+    positive_samples_list, unlabeled_samples_list = tsm.crossvalidation_by_category_1(positive_category_id, positive_ratio)
+
+    tsm_positive = tsm.clone(positive_samples_list)
+    tsm_unlabeled = tsm.clone(unlabeled_samples_list)
+
+    rn_iem(positive_category_id, tsm_positive, tsm_unlabeled, result_dir)
+
+
+# ---------------- do_test() ----------------
 def do_test(corpus_dir, positive_name_list, unlabeled_name, model_file, svm_file):
     corpus = Corpus(corpus_dir)
     #corpus.vocabulary.load()
@@ -125,6 +160,7 @@ def do_test(corpus_dir, positive_name_list, unlabeled_name, model_file, svm_file
     samples_unlabeled.load()
 
     PULearning_test(samples_positive, samples_unlabeled)
+
 
 # ---------------- do_query_sample() ----------------
 def do_query_sample(corpus_dir, samples_name, sample_id):
@@ -178,6 +214,7 @@ def do_query_keywords(corpus_dir, samples_name, result_dir):
     logging.info("Query keywords %s/<%s> Done. %s" % (corpus_dir, samples_name, result_dir))
 
 
+# ---------------- do_refresh() ----------------
 def do_refresh(corpus_dir, samples_name):
     corpus = Corpus(corpus_dir)
 
@@ -185,6 +222,7 @@ def do_refresh(corpus_dir, samples_name):
     samples.load()
     Fix(samples).refresh_content()
 
+# ---------------- do_show() ----------------
 def do_show(corpus_dir, samples_name):
     corpus = Corpus(corpus_dir)
     #corpus.vocabulary.load()
@@ -194,6 +232,7 @@ def do_show(corpus_dir, samples_name):
 
     samples.show()
 
+# ---------------- do_purge() ----------------
 def do_purge(corpus_dir, samples_name):
     corpus = Corpus(corpus_dir)
 
@@ -202,6 +241,7 @@ def do_purge(corpus_dir, samples_name):
 
     Fix(samples).purge()
 
+# ---------------- do_sne() ----------------
 def do_sne(corpus_dir, samples_name, result_dir):
     corpus = Corpus(corpus_dir)
 
@@ -210,7 +250,7 @@ def do_sne(corpus_dir, samples_name, result_dir):
 
     sne(samples, result_dir)
 
-from docopt import docopt
+# ---------------- main() ----------------
 def main():
     s_time = datetime.utcnow()
 
@@ -219,7 +259,8 @@ def main():
 
     corpus_dir = args['--corpus_dir']
     result_dir = args['--result_dir']
-    positive_name_list = args['--positive_name']
+    #positive_name_list = args['--positive_name']
+    positive_name = args['--positive_name']
     unlabeled_name = args['--unlabeled_name']
     model_file = args['--model_file']
     svm_file = args['--svm_file']
@@ -265,6 +306,8 @@ def main():
         do_train(corpus_dir, samples_name, model_name, result_dir)
     elif args['predict']:
         do_predict(corpus_dir, samples_name, model_name, result_dir)
+    elif args['iem']:
+        do_iem(corpus_dir, positive_name, unlabeled_name, result_dir)
 
     e_time = datetime.utcnow()
     t_time = (e_time - s_time)

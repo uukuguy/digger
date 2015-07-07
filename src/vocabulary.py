@@ -16,6 +16,8 @@ class SegmentMethod():
     NGRAM = 1
 
 class Vocabulary:
+
+    # ---------------- __init__() ----------------
     def __init__(self, vocabulary_dir):
         #self.maxid = 0
         #self.terms = bidict()
@@ -28,15 +30,18 @@ class Vocabulary:
         self.db = None
         #self.load()
 
+    # ---------------- clear() ----------------
     def clear(self):
         #self.terms = bidict()
         self.terms_by_text = {}
         self.terms_by_id = {}
 
+    # ---------------- get_terms_count() ----------------
     def get_terms_count(self):
         #return len(self.terms)
         return len(self.terms_by_text)
 
+    # ---------------- add_term() ----------------
     def add_term(self, term_text):
         #term_id = self.maxid
         #self.maxid += 1
@@ -55,11 +60,13 @@ class Vocabulary:
 
         return term_id
 
+    # ---------------- get_term_id() ----------------
     def get_term_id(self, term_text):
         #term_id = self.terms[term_text]
         term_id = self.terms_by_text[term_text]
         return term_id
 
+    # ---------------- get_term_text() ----------------
     def get_term_text(self, term_id):
         #term_text = self.terms[:term_id]
         if term_id in self.terms_by_id:
@@ -75,6 +82,7 @@ class Vocabulary:
             self.db = None
         return term_text
 
+    # ---------------- save() ----------------
     def save(self):
         #batch_vocabulary = leveldb.WriteBatch()
 
@@ -91,6 +99,7 @@ class Vocabulary:
             self.batch_vocabulary = None
         self.db = None
 
+    # ---------------- load() ----------------
     def load(self):
         if self.db is None:
             self.db = leveldb.LevelDB(self.root_dir)
@@ -114,6 +123,7 @@ class Vocabulary:
 
         self.db = None
 
+    # ---------------- seg_content() ----------------
     def seg_content(self, content):
         term_map = self.add_text(content)
         sample_terms = 0
@@ -131,6 +141,7 @@ class Vocabulary:
         else:
             raise ValueError, ("Invalid SegmentMethod.")
 
+    # ---------------- add_text_jieba() ----------------
     def add_text_jieba(self, content):
         term_map = {}
         tokens = jieba.cut(content)
@@ -150,6 +161,7 @@ class Vocabulary:
 
         return term_map
 
+    # ---------------- add_text_ngram() ----------------
     def add_text_ngram(self, content):
         term_map = {}
         len_c = len(content)

@@ -10,10 +10,11 @@ from __future__ import division
 import logging
 from utils import *
 
-def calculate_samples_positive_degree(tm_matrix, terms_positive_degree, max_terms = 20):
+# ---------------- calculate_samples_positive_degree() ----------------
+def calculate_samples_positive_degree(tsm, terms_positive_degree, max_terms = 20):
     samples_positive_degree = {}
-    for sample_id in tm_matrix:
-        (category, sample_terms, term_map) = tm_matrix[sample_id]
+    for sample_id in tsm.sample_matrix():
+        (category, sample_terms, term_map) = tsm.get_sample_row(sample_id)
         if sample_terms != 0.0 and sample_terms != 1.0:
             terms_V = {}
             for term_id in term_map:
@@ -37,6 +38,7 @@ def calculate_samples_positive_degree(tm_matrix, terms_positive_degree, max_term
     return samples_positive_degree
 
 
+# ---------------- save_terms_positive_degree() ----------------
 def save_terms_positive_degree(terms_positive_degree, vocabulary, filename):
 
     f = open(filename, "wb+")
@@ -49,6 +51,8 @@ def save_terms_positive_degree(terms_positive_degree, vocabulary, filename):
         f.write("%d %s %.6f(%.6f,%.6f)\n" % (term_id, term_text.encode('utf-8'), pd_word, specialty, popularity))
     f.close()
 
+
+# ---------------- save_samples_positive_degree() ----------------
 def save_samples_positive_degree(samples, samples_positive_degree):
     samples_name = samples.name
     output_file = "./result/check_%s.txt" % (samples_name)
