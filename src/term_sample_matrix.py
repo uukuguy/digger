@@ -79,7 +79,6 @@ class TermSampleMatrix():
     def get_sample_row(self, sample_id):
         return self.sm_matrix[sample_id]
 
-
     # ---------------- term_matrix() ----------------
     def term_matrix(self):
         return self.tm_matrix
@@ -120,11 +119,11 @@ class TermSampleMatrix():
                 term_sample_matrix.sm_matrix[sample_id] = sample_info
             term_sample_matrix.sample_max_id = self.sample_max_id
         else:
-            term_sample_matrix.sample_matrix = 0
+            term_sample_matrix.sample_max_id = 0
             for sample_id in samples_list:
                 sample_info = self.sm_matrix[sample_id]
                 term_sample_matrix.sm_matrix[sample_id] = sample_info
-                if sample_id >= term_sample_matrix.sample_matrix:
+                if sample_id >= term_sample_matrix.sample_max_id:
                     term_sample_matrix.sample_max_id = sample_id + 1
 
         term_sample_matrix.rebuild_term_matrix()
@@ -147,8 +146,9 @@ class TermSampleMatrix():
     # ---------------- set_sample_category() ----------------
     def set_sample_category(self, sample_id, category_id):
         if sample_id in self.sm_matrix:
-            (_, sample_terms, term_map) = self.sm_matrix[sample_id]
+            (category_old, sample_terms, term_map) = self.sm_matrix[sample_id]
             self.sm_matrix[sample_id] = (category_id, sample_terms, term_map)
+            #logging.debug("set_sample_category(%d, %d) old_category:%d" % (sample_id, category_id, category_old))
 
     # ---------------- get_sample_category() ----------------
     def get_sample_category(self, sample_id):
@@ -160,6 +160,7 @@ class TermSampleMatrix():
 
     # ---------------- merge() ----------------
     def merge(self, other_tsm, renewid = False):
+        logging.debug("Merge %d samples into %d samples." % (other_tsm.get_total_samples(), self.get_total_samples()))
 
         sample_max_id = self.sample_max_id
         rowidx = 0
@@ -171,10 +172,11 @@ class TermSampleMatrix():
             else:
                 new_sample_id = sample_id
             self.sm_matrix[new_sample_id] = sample_info
-            if rowidx % 1000 == 0:
-                logging.debug("Merge sample matrix %d/%d" % (rowidx, len(other_tsm.sm_matrix)))
+            #if rowidx % 1000 == 0:
+                #logging.debug("Merge sample matrix %d/%d" % (rowidx, len(other_tsm.sm_matrix)))
             rowidx += 1
 
+        logging.debug("Merge %d terms into %d terms." % (other_tsm.get_total_terms(), self.get_total_terms()))
         rowidx = 0
         for term_id in other_tsm.tm_matrix:
             (_, (term_used, term_samples, sample_map)) = other_tsm.tm_matrix[term_id]
@@ -194,8 +196,8 @@ class TermSampleMatrix():
                 (_, (term_used_0, term_samples_0, sample_map_0)) = self.tm_matrix[term_id]
             self.tm_matrix[term_id] = (term_id, (term_used + term_used_0, term_samples + term_samples_0, dict(sample_map_0, **new_sample_map)))
 
-            if rowidx % 1000 == 0:
-                logging.debug("Merge term matrix %d/%d" % (rowidx, len(other_tsm.tm_matrix)))
+            #if rowidx % 1000 == 0:
+                #logging.debug("Merge term matrix %d/%d" % (rowidx, len(other_tsm.tm_matrix)))
             rowidx += 1
 
         self.rebuild_categories()
@@ -213,6 +215,8 @@ class TermSampleMatrix():
 
             if rowidx % 1000 == 0:
                 logging.debug("save_sample_matrix() %d %d" % (rowidx, sample_id))
+                print sample_info
+
             rowidx += 1
 
         if path.isdir(self.tm_dir):
@@ -268,6 +272,7 @@ class TermSampleMatrix():
             sample_info = msgpack.loads(i[1])
             #print sample_info
             sm_matrix[sample_id] = sample_info
+            #print sample_info
 
             if rowidx % 1000 == 0:
                 logging.debug("load_sample_matrix() %d" % (rowidx))
@@ -349,6 +354,9 @@ class TermSampleMatrix():
 
             if sample_terms == 1 or sample_terms == 0:
                 logging.warn("!!!!!!!!!! [%d] sample_terms == %d" % (rowidx, sample_terms))
+
+            if len(cat1) > 0:
+                category = categories.create_or_get_category_id(cat1, cat2, cat3)
 
             sm_matrix[sample_id] = (category, sample_terms, term_map)
             if sample_id >= self.sample_max_id:
@@ -483,9 +491,20 @@ class TermSampleMatrix():
         return sfm
 
 
-    # ---------------- divide_samples_by_category_1() ----------------
+    # ---------------- get_samples_list() ----------------
+    def get_samples_list(self, by_category_1 = None, by_category_2 = None):
+        if not by_category_1 is None:
+            L = get_samples_list_by_category_1(by_category_1)
+        elif not by_category_2 is None:
+            L = get_samples_list_by_category_2(by_category_2)
+        else:
+            L = [i for i in self.sm_matrix]
+
+        return L
+
+    # ---------------- get_samples_list_by_category_1() ----------------
     # 抽取正例样本集，及未标注样本集
-    def divide_samples_by_category_1(self, category_positive, include_sub_categories = True):
+    def get_samples_list_by_category_1(self, category_positive):
         positive_samples_list = []
         unlabeled_samples_list = []
 
@@ -495,10 +514,9 @@ class TermSampleMatrix():
             if category_id == category_positive:
                 is_positive = True
             else:
-                if include_sub_categories:
-                    category_1_id = Categories.get_category_1_id(category_id)
-                    if category_1_id == category_positive:
-                        is_positive = True
+                category_1_id = Categories.get_category_1_id(category_id)
+                if category_1_id == category_positive:
+                    is_positive = True
 
             #logging.debug("category_id:%d category_positive:%d is_positive:%d" % (category_id, category_positive, is_positive) )
             if is_positive:
@@ -509,8 +527,8 @@ class TermSampleMatrix():
         return positive_samples_list, unlabeled_samples_list
 
 
-    # ---------------- divide_samples_by_category_2() ----------------
-    def divide_samples_by_category_2(self, category_positive, include_sub_categories = True):
+    # ---------------- get_samples_list_by_category_2() ----------------
+    def get_samples_list_by_category_2(self, category_positive):
         positive_samples_list = []
         unlabeled_samples_list = []
 
@@ -541,17 +559,20 @@ class TermSampleMatrix():
 
     # ---------------- crossvalidation_by_category_1() ----------------
     def crossvalidation_by_category_1(self, category_1_id, positive_ratio):
-        positive_samples_list, unlabeled_samples_list = self.divide_samples_by_category_1(category_1_id)
-        logging.debug("One category - P:%d U:%d" % (len(positive_samples_list), len(unlabeled_samples_list)))
+        positive_samples_list, unlabeled_samples_list = self.get_samples_list_by_category_1(category_1_id)
+        logging.debug("One category - Positive:%d Unlabeled:%d" % (len(positive_samples_list), len(unlabeled_samples_list)))
+        n_P_in_U = int(len(positive_samples_list) * (1 - positive_ratio))
         if len(positive_samples_list) > 0:
             if positive_ratio < 1.0:
-                n = len(positive_samples_list) * (1 - positive_ratio)
-                while n > 0:
+                n = 0
+                while n < n_P_in_U:
                     idx = random.randint(0, len(positive_samples_list) - 1)
                     unlabeled_samples_list.append(positive_samples_list[idx])
                     del positive_samples_list[idx]
-                    n -= 1
-        logging.debug("CrossValidation - ratio: %.3f P:%d U:%d" % (positive_ratio, len(positive_samples_list), len(unlabeled_samples_list)))
+                    n += 1
+        total_P = len(positive_samples_list)
+        total_U = len(unlabeled_samples_list)
+        logging.debug("CrossValidation - ratio: %.3f P:%d U:%d P_in_U: %d U_in_U: %d" % (positive_ratio, total_P, total_U, n_P_in_U, total_U - n_P_in_U))
         return positive_samples_list, unlabeled_samples_list
 
 

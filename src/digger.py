@@ -21,6 +21,7 @@ Usage:
   digger.py train [--corpus_dir=<corpus_dir>] [--samples_name=<sn>] [--model_name=<mn>]
   digger.py predict [--corpus_dir=<corpus_dir>] [--samples_name=<sn>] [--model_name=<mn>]
   digger.py iem [--corpus_dir=<corpus_dir>] [--positive_name=<pn>] [--unlabeled_name=<un>] [--result_dir <rd>]
+  digger.py sem [--corpus_dir=<corpus_dir>] [--positive_name=<pn>] [--unlabeled_name=<un>] [--result_dir <rd>]
   digger.py (-h | --help)
   digger.py --version
 
@@ -96,6 +97,7 @@ def do_rebuild(corpus_dir, samples_name):
 def do_rebuild_categories(corpus_dir, samples_name):
     corpus = Corpus(corpus_dir)
     samples = Samples(corpus, samples_name)
+    samples.load()
     logging.debug("Rebuild base data...")
     Fix(samples).fix_categories()
     samples.rebuild_categories()
@@ -119,7 +121,7 @@ def do_predict(corpus_dir, samples_name, model_name, result_dir):
     multicategories_predict(samples, model_name, result_dir)
 
 # ---------------- do_iem() ----------------
-from reliable_negatives import ReliableNegatives, rn_iem
+from reliable_negatives import ReliableNegatives, rn_iem, rn_sem
 def do_iem(corpus_dir, positive_name, unlabeled_name, result_dir):
     corpus = Corpus(corpus_dir)
     corpus.vocabulary.load()
@@ -139,6 +141,34 @@ def do_iem(corpus_dir, positive_name, unlabeled_name, result_dir):
     tsm_unlabeled = tsm.clone(unlabeled_samples_list)
 
     rn_iem(positive_category_id, tsm_positive, tsm_unlabeled, result_dir)
+
+# ---------------- do_sem() ----------------
+from reliable_negatives import ReliableNegatives, rn_iem
+def do_sem(corpus_dir, positive_name, unlabeled_name, result_dir):
+    corpus = Corpus(corpus_dir)
+    corpus.vocabulary.load()
+    samples_positive = Samples(corpus, positive_name)
+    samples_positive.load()
+    #samples_unlabeled = Samples(corpus, unlabeled_name)
+    #samples_unlabeled.load()
+
+    logging.debug("S-EM ...")
+
+    positive_category_id = 2000000
+    positive_ratio = 0.8
+    tsm = samples_positive.tsm
+    positive_samples_list, unlabeled_samples_list = tsm.crossvalidation_by_category_1(positive_category_id, positive_ratio)
+
+    tsm_positive = tsm.clone(positive_samples_list)
+    tsm_unlabeled = tsm.clone(unlabeled_samples_list)
+    total_positive_samples = tsm_positive.get_total_samples()
+    total_unlabeled_samples = tsm_unlabeled.get_total_samples()
+    logging.debug("do_sem() %d samples in tsm_positive, %d samples in tsm_unlabeled." % (total_positive_samples, total_unlabeled_samples))
+    #for sample_id in tsm_unlabeled.sample_matrix():
+        #category_id = tsm_unlabeled.get_sample_category(sample_id)
+        #print sample_id, category_id
+
+    rn_sem(positive_category_id, tsm_positive, tsm_unlabeled, result_dir)
 
 
 # ---------------- do_test() ----------------
@@ -308,6 +338,8 @@ def main():
         do_predict(corpus_dir, samples_name, model_name, result_dir)
     elif args['iem']:
         do_iem(corpus_dir, positive_name, unlabeled_name, result_dir)
+    elif args['sem']:
+        do_sem(corpus_dir, positive_name, unlabeled_name, result_dir)
 
     e_time = datetime.utcnow()
     t_time = (e_time - s_time)

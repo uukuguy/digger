@@ -101,4 +101,22 @@ def save_as_svm_file(f, X, y):
     file_out.close()
 
 
+# ---------------- crossvalidation_list_by_ratio() ----------------
+def crossvalidation_list_by_ratio(X, ratio):
+    num = len(X)
+    if num == 0:
+        return [], []
+    if ratio == 1.0:
+        return X, []
+    num1 = int(num * ratio + 0.5)
+
+    X1 = []
+    X2 = [a for a in X]
+    while len(X1) < num1:
+        idx = random.randint(0, len(X2) - 1)
+        X1.append(X2[idx])
+        del X2[idx]
+
+    return X1, X2
+
 

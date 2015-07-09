@@ -283,7 +283,7 @@ class Samples():
         categories = self.get_categories()
         for category_name in categories.categories_1:
             category_id = categories.categories_1[category_name]
-            positive_samples_list, unlabeled_samples_list = tsm.divide_samples_by_category_1(category_id, True)
+            positive_samples_list, unlabeled_samples_list = tsm.get_samples_list_by_category_1(category_id, True)
 
             print "%s(%d) Positive Samples: %d Unlabeled Samples: %d" % (category_name, category_id, len(positive_samples_list), len(unlabeled_samples_list))
 
@@ -321,7 +321,7 @@ class Samples():
         categories = self.get_categories()
         for category_name in categories.categories_2:
             category_id = categories.categories_2[category_name]
-            positive_samples_list, unlabeled_samples_list = tsm.divide_samples_by_category_2(category_id, True)
+            positive_samples_list, unlabeled_samples_list = tsm.get_samples_list_by_category_2(category_id, True)
 
             print "%s(%d) Positive Samples: %d Unlabeled Samples: %d" % (category_name, category_id, len(positive_samples_list), len(unlabeled_samples_list))
 
@@ -512,11 +512,16 @@ class Samples():
             rowstr = msgpack.dumps(sample_data)
             batch_content.Put(str(sample_id), rowstr)
 
+            #if category_id != category:
+            #print category_id, category, cat1, cat2, cat3
+            self.tsm.set_sample_category(sample_id, category_id)
             #logging.debug("[%d] %d %d=<%s:%s:%s:>" % (rowidx, sample_id, category_id, cat1, cat2, cat3))
 
             rowidx += 1
 
         db_content.Write(batch_content, sync=True)
+
+        self.tsm.save_sample_matrix(self.tsm.sm_matrix)
 
         categories.save_categories()
         categories.print_categories()
