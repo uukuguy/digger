@@ -214,8 +214,8 @@ class TermSampleMatrix():
             batch_sm.Put(str(sample_id), msgpack.dumps(sample_info))
 
             if rowidx % 1000 == 0:
-                logging.debug("save_sample_matrix() %d %d" % (rowidx, sample_id))
-                print sample_info
+                logging.debug("save_sample_matrix() rowidx: %d sample_id: %d" % (rowidx, sample_id))
+                #print sample_info
 
             rowidx += 1
 
@@ -261,6 +261,7 @@ class TermSampleMatrix():
 
     # ---------------- load_sample_matrix() ----------
     def load_sample_matrix(self, db_sm):
+        logging.debug("load_sample_matrix(). Start loading samples ...")
         sm_matrix = {}
         rowidx = 0
         for i in db_sm.RangeIter():
@@ -274,15 +275,18 @@ class TermSampleMatrix():
             sm_matrix[sample_id] = sample_info
             #print sample_info
 
-            if rowidx % 1000 == 0:
-                logging.debug("load_sample_matrix() %d" % (rowidx))
+            #if rowidx % 1000 == 0:
+                #logging.debug("load_sample_matrix() %d" % (rowidx))
 
             rowidx += 1
+
+        logging.info("load_sample_matrix(). Loaded %d samples." % (len(sm_matrix)))
 
         return sm_matrix
 
     # ---------------- load_term_matrix() ----------
     def load_term_matrix(self, db_tm):
+        logging.debug("load_term_matrix(). Start loading terms ...")
         tm_matrix = {}
         rowidx = 0
         for i in db_tm.RangeIter():
@@ -296,12 +300,12 @@ class TermSampleMatrix():
             tm_matrix[term_id] = (term_id, term_info)
             #print tm_matrix[term_id]
 
-            if rowidx % 1000 == 0:
-                logging.debug("load_term_matrix() %d" % (rowidx))
+            #if rowidx % 1000 == 0:
+                #logging.debug("load_term_matrix() %d" % (rowidx))
 
             rowidx += 1
 
-        logging.debug("load total terms: %d" % (len(tm_matrix)))
+        logging.info("load_term_matrix(). Loaded %d terms" % (len(tm_matrix)))
         return tm_matrix
 
     # ---------------- load() ----------
@@ -355,8 +359,8 @@ class TermSampleMatrix():
             if sample_terms == 1 or sample_terms == 0:
                 logging.warn("!!!!!!!!!! [%d] sample_terms == %d" % (rowidx, sample_terms))
 
-            if len(cat1) > 0:
-                category = categories.create_or_get_category_id(cat1, cat2, cat3)
+            #if len(cat1) > 0:
+                #category = categories.create_or_get_category_id(cat1, cat2, cat3)
 
             sm_matrix[sample_id] = (category, sample_terms, term_map)
             if sample_id >= self.sample_max_id:
@@ -462,34 +466,6 @@ class TermSampleMatrix():
         y = categories
 
         return X, y, terms, category_map
-
-    # ---------------- tranform_tfidf() ----------
-    def tranform_tfidf(self):
-        sm_matrix = self.sm_matrix
-        tm_matrix = self.tm_matrix
-
-        sfm = SampleFeatureMatrix()
-        total_samples = len(sm_matrix)
-
-        rowidx = 0
-        for sample_id in sm_matrix:
-            (category, sample_terms, term_map) = sm_matrix[sample_id]
-
-            sfm.set_sample_category(sample_id, category)
-            colidx = 0
-            for term_id in term_map:
-                term_used = term_map[term_id]
-                tf = term_used / sample_terms
-                (_, (_, term_samples, _)) = tm_matrix[term_id]
-                idf = math.log(total_samples/term_samples)
-                tfidf = tf * idf
-                sfm.add_sample_feature(sample_id, term_id, tfidf)
-                colidx += 1
-
-            rowidx += 1
-
-        return sfm
-
 
     # ---------------- get_samples_list() ----------------
     def get_samples_list(self, by_category_1 = None, by_category_2 = None):

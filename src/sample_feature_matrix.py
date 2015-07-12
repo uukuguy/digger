@@ -16,9 +16,14 @@ import tokenize
 import StringIO
 
 class SampleFeatureMatrix():
-    def __init__(self, category_id_map = None, feature_id_map = None):
+    def __init__(self, feature_weights = None, category_id_map = None, feature_id_map = None):
         self.sample_categories = {}
         self.sf_matrix = {}
+
+        if feature_weights is None:
+            self.feature_weights = {}
+        else:
+            self.feature_weights = feature_weights
 
         # feature_id 与 feature_idx 双向映射
         if feature_id_map is None:
@@ -91,6 +96,8 @@ class SampleFeatureMatrix():
             self.sf_matrix[sample_id] = (features)
         else:
             self.sf_matrix[sample_id] = ({feature_id:feature_weight})
+
+        self.feature_weights[feature_id] = feature_weight
 
     # ---------------- get_sample_category() ----------
     def get_sample_category(self, sample_id):

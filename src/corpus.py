@@ -41,6 +41,7 @@ from category_feature_matrix import CategoryFeatureMatrix
 from protocal import decode_sample_meta
 from categories import Categories
 from transform import import_samples_from_xls, export_samples_to_xls, export_urls_to_xls
+from feature_weighting import FeatureWeight
 
 # ================ class Samples ================
 class Samples():
@@ -343,7 +344,8 @@ class Samples():
         term_category_matrix = {}
 
         tsm = self.tsm
-        sfm_tfidf = tsm.tranform_tfidf()
+
+        sfm_tfidf = FeatureWeight.transform(tsm, FeatureWeight.TFIDF)
 
         for (term_id, term_info) in tsm.term_matrix_iterator():
             (_, (term_used, term_samples, sample_map)) = term_info
