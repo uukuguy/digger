@@ -77,4 +77,5 @@ pip install flask tornado
 
 pip install json-c 
 
+pip install gmpy2
 

@@ -44,30 +44,41 @@ class FeatureWeight():
         #num_categories = sfm.get_num_categories()
         #logging.debug("Before transform_tfidf() sfm: %d samples %d terms %d categories." % (num_samples, num_features, num_categories))
 
-        rowidx = 0
-        for sample_id in sm_matrix:
-            (category, sample_terms, term_map) = sm_matrix[sample_id]
-            #if category == 1:
-                #print "sample_id: %d category: %d" % (sample_id, category)
+        #if feature_weights is None:
+        if True:
+            rowidx = 0
+            for sample_id in sm_matrix:
+                (category, sample_terms, term_map) = sm_matrix[sample_id]
+                #if category == 1:
+                    #print "sample_id: %d category: %d" % (sample_id, category)
 
-            sfm.set_sample_category(sample_id, category)
-            colidx = 0
-            for term_id in term_map:
-                if not feature_weights is None:
-                    if not term_id in feature_weights:
-                        #print "sample %d term %d not in feature_weights." % (sample_id, term_id)
-                        colidx += 1
-                        continue
-                term_used = term_map[term_id]
-                tf = term_used / sample_terms
-                (_, (_, term_samples, _)) = tm_matrix[term_id]
-                idf = math.log(total_samples/term_samples)
-                tfidf = tf * idf
-                sfm.add_sample_feature(sample_id, term_id, tfidf)
-                #print "sample_id: %d term_id: %d tf: %.6f idf: %.6f tfidf: %.6f" % (sample_id, term_id, tf, idf, tfidf)
-                colidx += 1
+                sfm.set_sample_category(sample_id, category)
+                colidx = 0
+                for term_id in term_map:
+                    if not feature_weights is None:
+                        if not term_id in feature_weights:
+                            #print "sample %d term %d not in feature_weights." % (sample_id, term_id)
+                            colidx += 1
+                            continue
+                    term_used = term_map[term_id]
+                    tf = term_used / sample_terms
+                    (_, (_, term_samples, _)) = tm_matrix[term_id]
+                    idf = math.log(total_samples/term_samples)
+                    tfidf = tf * idf
+                    sfm.add_sample_feature(sample_id, term_id, tfidf)
+                    #print "sample_id: %d term_id: %d tf: %.6f idf: %.6f tfidf: %.6f" % (sample_id, term_id, tf, idf, tfidf)
+                    colidx += 1
 
-            rowidx += 1
+                rowidx += 1
+        else:
+            for sample_id in tsm.sample_matrix():
+                (category_id, sample_terms, term_map) = tsm.get_sample_row(sample_id)
+                sfm.set_sample_category(sample_id, category_id)
+                for term_id in term_map:
+                    if term_id in feature_weights:
+                        feature_weight = feature_weights[term_id]
+                        sfm.add_sample_feature(sample_id, term_id, feature_weight)
+
 
         num_samples = sfm.get_num_samples()
         num_features = sfm.get_num_features()
@@ -85,6 +96,51 @@ class FeatureWeight():
     def transform_tfrf(tsm, sfm = None, feature_weights = None):
         if sfm is None:
             sfm = SampleFeatureMatrix()
+
+        if feature_weights is None:
+            sfm.feature_weights = {}
+            for term_id in tsm.term_matrix():
+                (_, (term_used, term_samples, sample_map)) = tsm.get_term_row(term_id)
+                term_categories = {}
+                for sample_id in sample_map:
+                    category_id = tsm.get_sample_category(sample_id)
+                    terms_used_in_sample = sample_map[sample_id]
+                    if category_id in term_categories:
+                        term_categories[category_id] += terms_used_in_sample
+                    else:
+                        term_categories[category_id] = terms_used_in_sample
+                a = 0
+                if 1 in term_categories:
+                    a = term_categories[1]
+                c = 0
+                if -1 in term_categories:
+                    c = term_categories[-1]
+                if c != 0:
+                    rf = math.log(2 + a / c)
+                else:
+                    rf = 10.0
+                sfm.feature_weights[term_id] = rf
+
+
+            for sample_id in tsm.sample_matrix():
+                (category_id, sample_terms, term_map) = tsm.get_sample_row(sample_id)
+                sfm.set_sample_category(sample_id, category_id)
+                for term_id in term_map:
+                    term_used = term_map[term_id]
+                    tf = term_used / sample_terms
+                    rf = sfm.feature_weights[term_id]
+                    tfrf = tf * rf
+                    sfm.add_sample_feature(sample_id, term_id, tfrf)
+
+        else:
+            for sample_id in tsm.sample_matrix():
+                (category_id, sample_terms, term_map) = tsm.get_sample_row(sample_id)
+                sfm.set_sample_category(sample_id, category_id)
+                for term_id in term_map:
+                    if term_id in feature_weights:
+                        feature_weight = feature_weights[term_id]
+                        sfm.add_sample_feature(sample_id, term_id, feature_weight)
+
         return sfm
 
 
