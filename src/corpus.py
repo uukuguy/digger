@@ -478,6 +478,7 @@ class Samples():
     # ---------------- rebuild() ----------------
     def rebuild(self):
         self.tsm.rebuild(self.db_content)
+        self.rebuild_categories()
 
 
     # ---------------- rebuild_categories() ----------------

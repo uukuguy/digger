@@ -78,16 +78,21 @@ class FeatureWeight():
 
 
     # ---------------- tranform_tfrf() ----------
+    # rf = log(2 + a / c)
+    # a : samples in positive category.
+    # c : samples in negative category
     @staticmethod
     def transform_tfrf(tsm, sfm = None, feature_weights = None):
-        sfm = None
+        if sfm is None:
+            sfm = SampleFeatureMatrix()
         return sfm
 
 
     # ---------------- tranform_tfipndf() ----------
     @staticmethod
     def transform_tfipndf(tsm, sfm = None, feature_weights = None):
-        sfm = None
+        if sfm is None:
+            sfm = SampleFeatureMatrix()
         return sfm
 
 

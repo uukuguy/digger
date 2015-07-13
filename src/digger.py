@@ -157,10 +157,18 @@ def do_sem(corpus_dir, positive_name, unlabeled_name, result_dir):
     positive_category_id = 2000000
     positive_ratio = 0.8
     tsm = samples_positive.tsm
+    #for sample_id in tsm.sample_matrix():
+        #category_id = tsm.get_sample_category(sample_id)
+        #print sample_id, category_id
+
     positive_samples_list, unlabeled_samples_list = tsm.crossvalidation_by_category_1(positive_category_id, positive_ratio)
 
     tsm_positive = tsm.clone(positive_samples_list)
     tsm_unlabeled = tsm.clone(unlabeled_samples_list)
+
+    #print positive_samples_list
+    #print unlabeled_samples_list
+
     total_positive_samples = tsm_positive.get_total_samples()
     total_unlabeled_samples = tsm_unlabeled.get_total_samples()
     logging.debug("do_sem() %d samples in tsm_positive, %d samples in tsm_unlabeled." % (total_positive_samples, total_unlabeled_samples))

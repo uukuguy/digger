@@ -219,8 +219,8 @@ class TermSampleMatrix():
 
             rowidx += 1
 
-        if path.isdir(self.tm_dir):
-            shutil.rmtree(self.tm_dir)
+        if path.isdir(self.sm_dir):
+            shutil.rmtree(self.sm_dir)
         db_sm = self.open_db_sm()
         db_sm.Write(batch_sm, sync=True)
         self.close_db(db_sm)
@@ -273,7 +273,6 @@ class TermSampleMatrix():
             sample_info = msgpack.loads(i[1])
             #print sample_info
             sm_matrix[sample_id] = sample_info
-            #print sample_info
 
             #if rowidx % 1000 == 0:
                 #logging.debug("load_sample_matrix() %d" % (rowidx))
@@ -297,6 +296,7 @@ class TermSampleMatrix():
                 continue
             term_id = int(row_id)
             term_info = msgpack.loads(i[1])
+            #print term_info
             tm_matrix[term_id] = (term_id, term_info)
             #print tm_matrix[term_id]
 

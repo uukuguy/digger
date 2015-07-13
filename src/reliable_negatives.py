@@ -6,6 +6,7 @@ reliable_negatives.py - 可信负例样本抽取算法
 
 from __future__ import division
 import logging
+import gmpy2
 from sklearn.cluster import KMeans
 from utils import sorted_dict, sorted_dict_by_values, crossvalidation_list_by_ratio
 from term_sample_matrix import TermSampleMatrix
@@ -61,25 +62,25 @@ class BayesianClassifier():
         return 0.0
 
 
-    def init_x_in_c_probs(self, positive_sample_list, nagetive_sample_list):
+    def init_x_in_c_probs(self, positive_sample_list, negative_sample_list):
         for sample_id in positive_sample_list:
-            self.set_x_in_c_prob(1, sample_id, 1.0)
-            self.set_x_in_c_prob(-1, sample_id, 0.0)
-        for sample_id in nagetive_sample_list:
-            self.set_x_in_c_prob(1, sample_id, 0.0)
-            self.set_x_in_c_prob(-1, sample_id, 1.0)
+            self.set_x_in_c_prob(1, sample_id, gmpy2.mpfr(1.0))
+            self.set_x_in_c_prob(-1, sample_id, gmpy2.mpfr(0.0))
+        for sample_id in negative_sample_list:
+            self.set_x_in_c_prob(1, sample_id, gmpy2.mpfr(0.0))
+            self.set_x_in_c_prob(-1, sample_id, gmpy2.mpfr(1.0))
 
 
     def __calculate_f_in_c_base(self, tsm, c):
         non_zero_probs = []
 
-        term_prob_sum = 0.0
+        term_prob_sum = gmpy2.mpfr(0.0)
         term_probs = []
         total_terms = tsm.get_total_terms()
         for term_id in tsm.term_matrix():
             (_, (_, _, sample_map)) = tsm.get_term_row(term_id)
 
-            term_prob = 0.0
+            term_prob = gmpy2.mpfr(0.0)
             for sample_id in sample_map:
                 term_used_in_sample = sample_map[sample_id]
                 term_prob += term_used_in_sample * self.get_x_in_c_prob(c, sample_id)
@@ -115,7 +116,7 @@ class BayesianClassifier():
         for category_id in categories:
             self.__calculate_f_in_c_base(tsm, category_id)
 
-            sample_prob_sum = 0.0
+            sample_prob_sum = gmpy2.mpfr(0.0)
             for sample_id in self.Pr_x_in_c:
                 sample_prob = self.get_x_in_c_prob(category_id, sample_id)
                 sample_prob_sum += sample_prob
@@ -124,7 +125,7 @@ class BayesianClassifier():
         #print "self.Pr_f_in_c"
         #print sorted_dict(self.Pr_f_in_c)
 
-        max_prob = 0.0
+        max_prob = gmpy2.mpfr(0.0)
         category_sum = {}
         for term_id in self.Pr_f_in_c:
             x = self.Pr_f_in_c[term_id]
@@ -155,23 +156,11 @@ class BayesianClassifier():
 
 
     def __calculate_x_in_c_base(self, tsm, c, sample_id):
-        sample_prob = 1.0
+        sample_prob = gmpy2.mpfr(1.0)
         (_, _, term_map) = tsm.get_sample_row(sample_id)
         for term_id in term_map:
             term_prob = self.get_f_in_c_prob(c, term_id)
-            if term_prob > 0.0:
-                #term_prob *= 10000
-                sample_prob *= term_prob
-
-        #if sample_prob == 0.0:
-            #sample_prob = 1.0
-            #(_, _, term_map) = tsm.get_sample_row(sample_id)
-            #for term_id in term_map:
-                #term_prob = self.get_f_in_c_prob(c, term_id)
-                #if term_prob > 0.0:
-                    ##term_prob *= 10000
-                    #sample_prob *= term_prob
-                ##logging.debug("sample_id: %d term_id:%d term_prob: %.6f sample_prob:%.9f" % (sample_id, term_id, term_prob, sample_prob))
+            sample_prob *= term_prob
 
         return sample_prob
 
@@ -183,30 +172,32 @@ class BayesianClassifier():
         #default_term_prob = 1.0 / total_terms
         default_term_prob = 0.5
         categories = self.categories
+        tiny_samples = []
         for sample_id in tsm.sample_matrix():
             # 所有正例样本的分类概率保持不变
 
-            sample_prob_sum = 0.0
+            sample_prob_sum = gmpy2.mpfr(0.0)
             sample_probs = []
             for category_id in categories:
                 Pr_c = self.get_c_prob(category_id)
                 sample_prob_base = self.__calculate_x_in_c_base(tsm, category_id, sample_id)
                 #if sample_prob_base == 0.0:
                     #logging.warn("calculate_x_in_c_prob() sample_prob_base == 0.0")
-                sample_prob = Pr_c * sample_prob_base
+                sample_prob = sample_prob_base * Pr_c
                 sample_probs.append((category_id, sample_prob))
                 sample_prob_sum += sample_prob
                 #logging.debug("Pr_c: %.3f sample_prob_base: %.9f" % (Pr_c, sample_prob_base))
-            if sample_prob_sum > 0.0:
-                for (category_id, sample_prob) in sample_probs:
-                    prob = sample_prob / sample_prob_sum
-                    self.set_x_in_c_prob(category_id, sample_id, prob)
-            else:
+            #if sample_prob_sum > 0.0:
+            for (category_id, sample_prob) in sample_probs:
+                prob = sample_prob / sample_prob_sum
+                self.set_x_in_c_prob(category_id, sample_id, prob)
+            #else:
                 #logging.warn("sample_prob_sum == 0.0")
-                self.set_x_in_c_prob(1, sample_id, default_term_prob)
-                self.set_x_in_c_prob(-1, sample_id, default_term_prob)
-                #self.set_x_in_c_prob(1, sample_id, self.get_c_prob(1))
-                #self.set_x_in_c_prob(-1, sample_id, self.get_c_prob(-1))
+                #self.set_x_in_c_prob(1, sample_id, default_term_prob)
+                #self.set_x_in_c_prob(-1, sample_id, default_term_prob)
+                ##if sample_id in self.Pr_x_in_c:
+                    ##del self.Pr_x_in_c[sample_id]
+                ##tiny_samples.append(sample_id)
 
 
             #sample_prob_c1 = self.__calculate_x_in_c_base(tsm, 1, sample_id)
@@ -215,6 +206,8 @@ class BayesianClassifier():
 
         #print "self.Pr_x_in_c"
         #print sorted_dict(self.Pr_x_in_c)
+
+        return tiny_samples
 
     # ---------------- result() ----------
     def result(self):
@@ -239,9 +232,9 @@ class BayesianClassifier():
                         likely_category = category_id
                 idx += 1
             if not likely_category is None:
-                sample_categories[sample_id] = (likely_category, max_prob)
+                sample_categories[sample_id] = (likely_category, max_prob, x_probs)
 
-            #print "result() - sample_id: %d positive: %.6f nagetive: %.6f likely_category: %d" % (sample_id, x_probs[1], x_probs[-1], likely_category)
+            #print "result() - sample_id: %d positive: %.6f negative: %.6f likely_category: %d" % (sample_id, x_probs[1], x_probs[-1], likely_category)
 
         return sample_categories
 
@@ -278,20 +271,20 @@ class ReliableNegatives():
 
         predict_result = {}
         positive_sample_list = []
-        nagetive_sample_list = []
+        negative_sample_list = []
         for sample_id in tsm.sample_matrix():
             category_id = tsm.get_sample_category(sample_id)
             if category_id == 1:
                 positive_sample_list.append(sample_id)
                 predict_result[sample_id] = 1
             else:
-                nagetive_sample_list.append(sample_id)
+                negative_sample_list.append(sample_id)
                 predict_result[sample_id] = -1
 
         # Build initial Naive Bayesian Classifier NB-C
         clf = BayesianClassifier(categories)
-        logging.debug("init_x_in_c_probs() Positive: %d Nagetive: %d ..." % (len(positive_sample_list), len(nagetive_sample_list)))
-        clf.init_x_in_c_probs(positive_sample_list, nagetive_sample_list)
+        logging.debug("init_x_in_c_probs() Positive: %d Negative: %d ..." % (len(positive_sample_list), len(negative_sample_list)))
+        clf.init_x_in_c_probs(positive_sample_list, negative_sample_list)
         #print clf.Pr_x_in_c
 
         logging.debug("calculate_f_in_c_prob() ...")
@@ -299,18 +292,23 @@ class ReliableNegatives():
 
         sample_categories = None
         n = 0
+        FP0 = FN0 = 0
         while True:
             logging.debug("-- %d -- Predicting ..." % (n))
             clf.calculate_x_in_c_prob(tsm_unlabeled)
-            sample_categories = clf.result()
-            TP, TN, FP, FN = report_iem_result(tsm_P, tsm_U, sample_categories, positive_category_id)
+            sc = clf.result()
+            TP, TN, FP, FN = report_iem_result(tsm_P, tsm_U, sc, positive_category_id)
 
             if FP == 0:
                 break
+            if FP0 > 0 and FP > FP0:
+                break
+            if FP == FP0 and FN <= FN0:
+                break
 
             new_predict_result = {}
-            for sample_id in sample_categories:
-                (likely_category, prob) = sample_categories[sample_id]
+            for sample_id in sc:
+                (likely_category, prob, x_probs) = sc[sample_id]
                 new_predict_result[sample_id] = likely_category
             if new_predict_result == predict_result:
                 break
@@ -318,11 +316,18 @@ class ReliableNegatives():
 
             logging.debug("-- %d -- Building new NB-C ..." % (n))
             clf.calculate_f_in_c_prob(tsm)
+
+            sample_categories = {k:sc[k] for k in sc}
+
+            FP0 = FP
+            FN0 = FN
             n += 1
 
         return tsm, sample_categories
 
-    def S_EM(self, tsm_positive, tsm_unlabeled, spy_ratio, spy_threshold_ratio, positive_category_id):
+
+    # ---------------- get_reliable_negative_by_SEM() ----------------
+    def get_reliable_negative_by_SEM(self, tsm_positive, tsm_unlabeled, spy_ratio, spy_threshold_ratio, positive_category_id):
         NS = []
         US = []
         P0 = tsm_positive.get_samples_list()
@@ -330,6 +335,7 @@ class ReliableNegatives():
         M = tsm_unlabeled.get_samples_list()
         MS = M + S
 
+        # -------- I-EM --------
         tsm_P = tsm_positive.clone(P)
         #for sample_id in tsm_P.sm_matrix:
             #tsm_P.set_sample_category(sample_id, 1)
@@ -343,23 +349,47 @@ class ReliableNegatives():
 
         tsm, sample_categories = self.I_EM(tsm_P, tsm_MS, positive_category_id)
 
+        # -------- Spy positive probability threshold --------
         # 计算spy分类概率阈值t
         Pr_spy = {}
         for sample_id in S:
-            spy_category, prob = sample_categories[sample_id]
-            if spy_category == 1:
-                Pr_spy[sample_id] = prob
-            else:
-                Pr_spy[sample_id] = 1.0 - prob
+            #if not sample_id in sample_categories:
+                #continue
+            spy_category, prob, x_probs = sample_categories[sample_id]
+            Pr_spy[sample_id] = x_probs[1]
+            #if spy_category == 1:
+                #Pr_spy[sample_id] = prob
+            #else:
+                #Pr_spy[sample_id] = 1.0 - prob
         Pr_spy_list = sorted_dict_by_values(Pr_spy, reverse = False)
+
         num_spy = len(S)
         spy_idx = int(num_spy * spy_threshold_ratio)
         (sample_id, t) = Pr_spy_list[spy_idx]
-        print Pr_spy_list
+        logging.debug("First Spy sample id: %d spy_threshold: %.6f (spy_idx=%d)" % (sample_id, t, spy_idx))
+
+        #spy_idx = 0
+        #t = 0.5
+        #threshold_found = False
+        idx = 0
+        for (sample_id, spy_prob) in Pr_spy_list:
+            #if not threshold_found and spy_prob >= 0.5:
+                #_, t = Pr_spy_list[spy_idx - 1]
+                #threshold_found = True
+            #spy_idx += 1
+
+            spy_category, prob, x_probs = sample_categories[sample_id]
+            print idx, sample_id, spy_category, prob, x_probs
+
+            idx += 1
+
         logging.debug("Spy sample id: %d spy_threshold: %.6f (spy_idx=%d)" % (sample_id, t, spy_idx))
 
+        # -------- Reliable Negative Samples --------
         for sample_id in M:
-            category_id, prob = sample_categories[sample_id]
+            #if not sample_id in sample_categories:
+                #continue
+            category_id, prob, x_probs = sample_categories[sample_id]
             if category_id == -1:
                 prob = 1.0 - prob
             #print "sample_id: %d category_id: %d prob: %.3f t: %.3f" % (sample_id, category_id, prob, t)
@@ -370,10 +400,12 @@ class ReliableNegatives():
 
         return NS, US
 
+
+# ---------------- calculate_representative_prototype() ----------------
 def calculate_representative_prototype(tsm, NS, US):
-    tsm_nagetive = tsm.clone(NS)
-    sfm_nagetive = FeatureWeight.transform(tsm_nagetive, FeatureWeight.TFIDF)
-    X, y = sfm_nagetive.to_sklearn_data()
+    tsm_negative = tsm.clone(NS)
+    sfm_negative = FeatureWeight.transform(tsm_negative, FeatureWeight.TFIDF)
+    X, y = sfm_negative.to_sklearn_data()
     t = 30
     m = int(t * len(NS) / (len(NS) +len(US)))
     logging.debug("Clustering NS into %d micro-clusters." % (m))
@@ -424,9 +456,6 @@ def rocsvm(tsm_P, tsm_U, PS, NS, US, positive_category_id):
         else:
             tsm_unlabeled.set_sample_category(sample_id, -1)
 
-    #tsm = tsm_positive.clone()
-    #tsm.merge(tsm_unlabeled, renewid = False)
-
     #categories = tsm.get_categories()
     #print categories
 
@@ -435,17 +464,23 @@ def rocsvm(tsm_P, tsm_U, PS, NS, US, positive_category_id):
     tsm_train = tsm_positive.clone()
 
     diff_NS = list(set(NS).difference(set(PS)))
-    tsm_ns = tsm_unlabeled.clone(diff_NS)
-    for sample_id in tsm_ns.sample_matrix():
-        tsm_ns.set_sample_category(sample_id, -1)
-    tsm_train.merge(tsm_ns, renewid = False)
+    tsm_diffns = tsm_unlabeled.clone(diff_NS)
+    for sample_id in tsm_diffns.sample_matrix():
+        tsm_diffns.set_sample_category(sample_id, -1)
+    tsm_train.merge(tsm_diffns, renewid = False)
 
     #sfm_train = SampleFeatureMatrix(sfm.get_category_id_map(), sfm.get_feature_id_map())
     sfm_train = SampleFeatureMatrix()
     sfm_train = FeatureWeight.transform(tsm_train, FeatureWeight.TFIDF, sfm_train)
     #sfm_train = FeatureWeight.transform(tsm_train, FeatureWeight.TFIDF)
 
-    tsm_test = tsm_unlabeled.clone(US)
+    #tsm = tsm_positive.clone()
+    #tsm.merge(tsm_unlabeled, renewid = False)
+
+    #tsm_test = tsm.clone(US)
+    #tsm_ns = tsm.clone(NS)
+    #tsm_test.merge(tsm_ns, renewid = False)
+    tsm_test = tsm_unlabeled.clone()
 
     sfm_test = SampleFeatureMatrix(feature_weights = sfm_train.feature_weights, category_id_map = sfm_train.get_category_id_map(), feature_id_map = sfm_train.get_feature_id_map())
 
@@ -469,8 +504,8 @@ def rocsvm(tsm_P, tsm_U, PS, NS, US, positive_category_id):
 
     # predicting
 
-    #clf.predict(X_train, y_train, [u"Nagetive", u"Positive"])
-    clf.predict(X_test, y_test, [u"Nagetive", u"Positive"])
+    #clf.predict(X_train, y_train, [u"Negative", u"Positive"])
+    clf.predict(X_test, y_test, [u"Negative", u"Positive"])
 
 
 # ---------------- sem_last() ----------------
@@ -500,7 +535,7 @@ def sem_last(tsm_P, tsm_U, PS, NS, US, positive_category_id):
         predict_result[sample_id] = -1
 
     clf = BayesianClassifier(categories)
-    logging.debug("init_x_in_c_probs() Positive: %d Nagetive: %d ..." % (len(PS), len(NS)))
+    logging.debug("init_x_in_c_probs() Positive: %d Negative: %d ..." % (len(PS), len(NS)))
     clf.init_x_in_c_probs(PS, NS)
     logging.debug("calculate_f_in_c_prob() ...")
     clf.calculate_f_in_c_prob(tsm)
@@ -550,7 +585,7 @@ def rn_sem(positive_category_id, tsm_positive, tsm_unlabeled, result_dir):
     common_NS = []
     n = 0
     while n < 1:
-        NS, US = rn.S_EM(tsm_positive, tsm_unlabeled, spy_ratio, spy_threshold_ratio, positive_category_id)
+        NS, US = rn.get_reliable_negative_by_SEM(tsm_positive, tsm_unlabeled, spy_ratio, spy_threshold_ratio, positive_category_id)
 
         FP, FN, UP, UN = report_sem_result(tsm_positive, tsm_unlabeled, NS, US, positive_category_id)
         best_log.append((FP, FN, UP, UN))
@@ -650,15 +685,13 @@ def report_iem_result(tsm_positive, tsm_unlabeled, sample_categories, positive_c
     FN = 0
     #report_cnt = 0
     for sample_id in sample_categories:
-        (likely_category_id, prob) = sample_categories[sample_id]
+        (likely_category_id, prob, x_probs) = sample_categories[sample_id]
 
         #category_id = tsm.get_sample_category(sample_id)
         category_id = tsm_unlabeled.get_sample_category(sample_id)
         if category_id is None:
             #category_id = tsm_positive.get_sample_category(sample_id)
             continue
-
-        #print "sample_id: %d likely_category_id: %d prob: %.6f" % (sample_id, likely_category_id, prob)
 
         #if report_cnt < 5:
         #print "report_iem_result() likely_category_id: %d category_id: %d positive_category_id: %d" % (likely_category_id, category_id, positive_category_id)
@@ -678,19 +711,26 @@ def report_iem_result(tsm_positive, tsm_unlabeled, sample_categories, positive_c
 
     print "\t| True\t| False\t|"
     print "Positive| %d\t| %d\t| %d" % (TP, FP, TP + FP)
-    print "Nagetive| %d\t| %d\t| %d" % (TN, FN, TN + FN)
+    print "Negative| %d\t| %d\t| %d" % (TN, FN, TN + FN)
     print
     print "- Positive -"
     positive_accuracy = TP / (TP + TN)
-    positive_recall = TP / (TP + FP)
+    if TP + FP != 0.0:
+        positive_recall = TP / (TP + FP)
+    else:
+        positive_recall = 0.0
     print "Accuracy: %.3f%%" % (positive_accuracy * 100)
     print "Recall: %.3f%%" % (positive_recall * 100)
     print
     print "- Negative -"
     negative_accuracy = FN / (FN + FP)
+    if FN + TN != 0.0:
+        negative_accuracy = FN / (FN + FP)
+    else:
+        negative_accuracy = 0.0
     negative_recall = FN / (FN + TN)
-    print "Accuracy: %.3f" % (negative_accuracy * 100)
-    print "Recall: %.3f" % (negative_recall * 100)
+    print "Accuracy: %.3f%%" % (negative_accuracy * 100)
+    print "Recall: %.3f%%" % (negative_recall * 100)
     print
 
     return TP, TN, FP, FN
