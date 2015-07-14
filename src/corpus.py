@@ -176,9 +176,9 @@ class Samples():
             return None
 
     # ---------------- clone() ----------------
-    def clone(self, samples_name, samples_list = None):
+    def clone(self, samples_name, samples_list = None, terms_list = None):
         samples = Samples(self.corpus, samples_name)
-        samples.tsm = self.tsm.clone(samples_list)
+        samples.tsm = self.tsm.clone(samples_list, terms_list)
         return samples
 
 

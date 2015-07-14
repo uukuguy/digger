@@ -132,10 +132,10 @@ def do_iem(corpus_dir, positive_name, unlabeled_name, result_dir):
 
     logging.debug("I-EM ...")
 
-    positive_category_id = 2000000
+    positive_category_id = 4000000
     positive_ratio = 0.8
     tsm = samples_positive.tsm
-    positive_samples_list, unlabeled_samples_list = tsm.crossvalidation_by_category_1(positive_category_id, positive_ratio)
+    positive_samples_list, unlabeled_samples_list = tsm.crossvalidation_by_category_1(positive_category_id, positive_ratio, random = False)
 
     tsm_positive = tsm.clone(positive_samples_list)
     tsm_unlabeled = tsm.clone(unlabeled_samples_list)
@@ -154,14 +154,14 @@ def do_sem(corpus_dir, positive_name, unlabeled_name, result_dir):
 
     logging.debug("S-EM ...")
 
-    positive_category_id = 2000000
+    positive_category_id = 4000000
     positive_ratio = 0.8
     tsm = samples_positive.tsm
     #for sample_id in tsm.sample_matrix():
         #category_id = tsm.get_sample_category(sample_id)
         #print sample_id, category_id
 
-    positive_samples_list, unlabeled_samples_list = tsm.crossvalidation_by_category_1(positive_category_id, positive_ratio)
+    positive_samples_list, unlabeled_samples_list = tsm.crossvalidation_by_category_1(positive_category_id, positive_ratio, random = False)
 
     tsm_positive = tsm.clone(positive_samples_list)
     tsm_unlabeled = tsm.clone(unlabeled_samples_list)

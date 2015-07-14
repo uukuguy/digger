@@ -13,6 +13,7 @@ from term_sample_matrix import TermSampleMatrix
 from sample_feature_matrix import SampleFeatureMatrix
 from categories import Categories
 from feature_weighting import FeatureWeight
+from feature_selection import select_features_by_positive_degree
 from classifier import Classifier
 
 class BayesianClassifier():
@@ -334,7 +335,6 @@ class ReliableNegatives():
         num_spy = len(S)
         spy_idx = int(num_spy * spy_threshold_ratio)
         (sample_id, t) = Pr_spy_list[spy_idx]
-        logging.debug("First Spy sample id: %d spy_threshold: %.6f (spy_idx=%d)" % (sample_id, t, spy_idx))
 
         idx = 0
         for (sample_id, spy_prob) in Pr_spy_list:
@@ -343,7 +343,7 @@ class ReliableNegatives():
 
             idx += 1
 
-        logging.debug("Spy sample id: %d spy_threshold: %.6f (spy_idx=%d)" % (sample_id, t, spy_idx))
+        logging.debug("Spy sample id: %d spy_threshold: %s (spy_idx=%d)" % (sample_id, str(t), spy_idx))
 
         # -------- Reliable Negative Samples --------
         for sample_id in M:
@@ -362,6 +362,7 @@ class ReliableNegatives():
 def calculate_representative_prototype(tsm, NS, US):
     tsm_negative = tsm.clone(NS)
     sfm_negative = FeatureWeight.transform(tsm_negative, FeatureWeight.TFIDF)
+    sfm_negative.init_cagegories([1,-1])
     X, y = sfm_negative.to_sklearn_data()
     t = 30
     m = int(t * len(NS) / (len(NS) +len(US)))
@@ -400,54 +401,101 @@ def rn_iem(positive_category_id, tsm_positive, tsm_unlabeled, result_dir):
     rn = ReliableNegatives()
     tsm, sample_categories = rn.I_EM(tsm_positive, tsm_unlabeled, positive_category_id)
 
-# ---------------- rocsvm() ----------------
-def rocsvm(tsm_P, tsm_U, PS, NS, US, positive_category_id):
+# ---------------- do_feature_selection() ----------------
+def do_feature_selection(tsm_positive, tsm_other):
+    threshold_pd_word = 1.0
+    threshold_specialty = 0.8
+    threshold_popularity = 0.01
+    terms_positive_degree = select_features_by_positive_degree(tsm_positive, tsm_other, (threshold_pd_word, threshold_specialty, threshold_popularity))
+    terms_positive_degree_list = sorted_dict_by_values(terms_positive_degree, reverse = True)
+    idx = 0
+    for (term_id, (pd_word, specialty, popularity)) in terms_positive_degree_list:
+        term_text = tsm_positive.vocabulary.get_term_text(term_id)
+        print "[%d] %d %s %.6f(%.6f,%.6f)" % (idx, term_id, term_text.encode('utf-8'), pd_word, specialty, popularity)
+        if idx >= 100:
+            break
+        idx += 1
 
-    fw_type = FeatureWeight.TFIDF
-    #fw_type = FeatureWeight.TFRF
+    selected_terms = [term_id for (term_id, _) in terms_positive_degree_list]
+
+# ---------------- rocsvm() ----------------
+def make_train_test_set(tsm_P, tsm_U, PS, NS, US, positive_category_id):
 
     tsm_positive = tsm_P.clone()
     tsm_unlabeled = tsm_U.clone()
-    for sample_id in tsm_positive.sample_matrix():
-        tsm_positive.set_sample_category(sample_id, 1)
+
+    # Convert multi level categories to binary categories. [1, -1]
+    # -------- All positive samples set category to 1
+    tsm_positive.set_all_samples_category(1)
+    # -------- Negative samples
+    # set category to 1 if it's level-1 category equal positive_category_id,
+    # otherwise set category to -1
+    p0 = 0
+    u0 = 0
     for sample_id in tsm_unlabeled.sample_matrix():
         category_id = tsm_unlabeled.get_sample_category(sample_id)
         if Categories.get_category_1_id(category_id) == positive_category_id:
             tsm_unlabeled.set_sample_category(sample_id, 1)
+            p0 += 1
         else:
             tsm_unlabeled.set_sample_category(sample_id, -1)
+            u0 += 1
+    logging.debug("tsm_unlabeled: P: %d U: %d P+U: %d" % (p0, u0, p0 + u0))
 
-    tsm_train = tsm_positive.clone()
 
+    # -------- reliable negative --------
     diff_NS = list(set(NS).difference(set(PS)))
     tsm_diffns = tsm_unlabeled.clone(diff_NS)
-    for sample_id in tsm_diffns.sample_matrix():
-        tsm_diffns.set_sample_category(sample_id, -1)
+    #RN = []
+    #for sample_id in diff_NS:
+        #if tsm_unlabeled.get_sample_category(sample_id) == -1:
+            #RN.append(sample_id)
+    #tsm_diffns = tsm_unlabeled.clone(RN)
+    # There are some positive samples in reliable negative set.
+    tsm_diffns.set_all_samples_category(-1)
+
+
+    # -------- feature selection --------
+    #L_other = tsm_U.get_samples_list(by_category_1 = positive_category_id, exclude = True)
+    #tsm_other = tsm_unlabeled.clone(L_other)
+    tsm_other = tsm_diffns
+    selected_terms = do_feature_selection(tsm_positive, tsm_other)
+
+    # -------- tsm_train --------
+    tsm_train = tsm_positive.clone(terms_list = selected_terms)
+    tsm_diffns = tsm_diffns.clone(terms_list = selected_terms)
     tsm_train.merge(tsm_diffns, renewid = False)
 
+    # -------- tsm_test --------
+    tsm_test = tsm_unlabeled.clone(terms_list = selected_terms)
+
+    return tsm_train, tsm_test
+
+
+# ---------------- rocsvm() ----------------
+def rocsvm(tsm_train, tsm_test):
+    fw_type = FeatureWeight.TFIDF
+    #fw_type = FeatureWeight.TFRF
+
+    # -------- sfm_train --------
     sfm_train = SampleFeatureMatrix()
+    sfm_train.init_cagegories([1, -1])
     sfm_train = FeatureWeight.transform(tsm_train, fw_type, sfm_train)
 
-    tsm_test = tsm_unlabeled.clone()
-
+    # -------- sfm_test --------
     sfm_test = SampleFeatureMatrix(feature_weights = sfm_train.feature_weights, category_id_map = sfm_train.get_category_id_map(), feature_id_map = sfm_train.get_feature_id_map())
+    sfm_test.init_cagegories([1, -1])
 
     sfm_test = FeatureWeight.transform(tsm_test, fw_type, sfm_test, sfm_train.feature_weights)
 
-    #num_samples = sfm_test.get_num_samples()
-    #num_features = sfm_test.get_num_features()
-    #num_categories = sfm_test.get_num_categories()
-    #logging.debug("After transform tfidf. sfm_test: %d samples %d terms %d categories." % (num_samples, num_features, num_categories))
-
+    # -------- train & predict --------
     X_train, y_train = sfm_train.to_sklearn_data()
     X_test, y_test = sfm_test.to_sklearn_data()
 
     clf = Classifier()
     clf.train(X_train, y_train)
 
-    # predicting
-
-    clf.predict(X_test, y_test, [u"Negative", u"Positive"])
+    clf.predict(X_test, y_test, [u"Positive", u"Negative"])
 
 
 # ---------------- sem_last() ----------------
@@ -583,11 +631,17 @@ def rn_sem(positive_category_id, tsm_positive, tsm_unlabeled, result_dir):
 
     PS = tsm_positive.get_samples_list()
 
-    rocsvm(tsm_positive, tsm_unlabeled, PS, NS_best, US_best, positive_category_id)
+    # -------- ROC-SVM --------
+    tsm_train, tsm_test = make_train_test_set(tsm_positive, tsm_unlabeled, PS, NS, US, positive_category_id)
+
+    rocsvm(tsm_train, tsm_test)
+
+    # -------- S-EM --------
     #sem_last(tsm_positive, tsm_unlabeled, PS, NS_best, US_best, positive_category_id)
 
 
     #calculate_representative_prototype(tsm_unlabeled, NS_best, US_best)
+
 
 # ---------------- report_sem_result() ----------------
 def report_sem_result(tsm_positive, tsm_unlabeled, NS, US, positive_category_id):

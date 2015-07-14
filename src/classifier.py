@@ -19,8 +19,10 @@ class Classifier():
 
     # ---------------- __init__() ----------------
     def __init__(self):
+        #self.clf = svm.LinearSVC(class_weight = {0:0.8, 1:0.2})
         self.clf = svm.LinearSVC()
         #self.clf = svm.SVC(kernel='rbf', C=1.0)
+
 
     # ---------------- print_predict_result() ----------------
     def print_predict_result(self, clf, y_pred, y_test, categories_names):

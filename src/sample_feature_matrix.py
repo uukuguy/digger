@@ -81,10 +81,18 @@ class SampleFeatureMatrix():
         else:
             return None
 
+    def init_cagegories(self, categories_list, sort = False):
+        cl = categories_list
+        if sort:
+            cl = sorted(categories_list)
+        for category_id in cl:
+            self.__category_id_map.setdefault(category_id, len(self.__category_id_map))
+
     # ---------------- set_sample_category() ----------
     def set_sample_category(self, sample_id, category_id):
         category_idx = self.__category_id_map.setdefault(category_id, len(self.__category_id_map))
         self.sample_categories[sample_id] = category_id
+        self.sf_matrix[sample_id] = ({})
         return category_idx
 
     # ---------------- add_sample_feature() ----------

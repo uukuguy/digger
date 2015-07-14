@@ -109,19 +109,33 @@ class TermSampleMatrix():
     def close_db(self, db):
         db = None
 
+    def select_sample_features(self, sample_info, terms_list):
+        (category_id, sample_terms, term_map) = sample_info
+        #sample_terms = 0
+        new_term_map = {}
+        for term_id in term_map:
+            if term_id in terms_list:
+                term_used_in_sample = term_map[term_id]
+                new_term_map[term_id] = term_used_in_sample
+                #sample_terms += term_used_in_sample
+        return (category_id, sample_terms, new_term_map)
 
     # ---------------- clone() ----------------
-    def clone(self, samples_list = None):
+    def clone(self, samples_list = None, terms_list = None):
         term_sample_matrix = TermSampleMatrix("", self.vocabulary)
         if samples_list is None:
             for sample_id in self.sm_matrix:
                 sample_info = self.sm_matrix[sample_id]
+                if not terms_list is None:
+                    sample_info = self.select_sample_features(sample_info, terms_list)
                 term_sample_matrix.sm_matrix[sample_id] = sample_info
             term_sample_matrix.sample_max_id = self.sample_max_id
         else:
             term_sample_matrix.sample_max_id = 0
             for sample_id in samples_list:
                 sample_info = self.sm_matrix[sample_id]
+                if not terms_list is None:
+                    sample_info = self.select_sample_features(sample_info, terms_list)
                 term_sample_matrix.sm_matrix[sample_id] = sample_info
                 if sample_id >= term_sample_matrix.sample_max_id:
                     term_sample_matrix.sample_max_id = sample_id + 1
@@ -149,6 +163,12 @@ class TermSampleMatrix():
             (category_old, sample_terms, term_map) = self.sm_matrix[sample_id]
             self.sm_matrix[sample_id] = (category_id, sample_terms, term_map)
             #logging.debug("set_sample_category(%d, %d) old_category:%d" % (sample_id, category_id, category_old))
+
+    # ---------------- set_all_samples_category() ----------------
+    def set_all_samples_category(self, category_id):
+        for sample_id in self.sm_matrix:
+            (category_old, sample_terms, term_map) = self.sm_matrix[sample_id]
+            self.sm_matrix[sample_id] = (category_id, sample_terms, term_map)
 
     # ---------------- get_sample_category() ----------------
     def get_sample_category(self, sample_id):
@@ -468,13 +488,18 @@ class TermSampleMatrix():
         return X, y, terms, category_map
 
     # ---------------- get_samples_list() ----------------
-    def get_samples_list(self, by_category_1 = None, by_category_2 = None):
-        if not by_category_1 is None:
-            L = get_samples_list_by_category_1(by_category_1)
-        elif not by_category_2 is None:
-            L = get_samples_list_by_category_2(by_category_2)
+    def get_samples_list(self, by_category_1 = None, by_category_2 = None, exclude = False):
+        if exclude:
+            whole_samples = [i for i in self.sm_matrix]
+            selected_samples, _ = self.get_samples_list(by_category_1, by_category_2, exclude = False)
+            L = list(set(whole_samples).difference(set(selected_samples)))
         else:
-            L = [i for i in self.sm_matrix]
+            if not by_category_1 is None:
+                L = self.get_samples_list_by_category_1(by_category_1)
+            elif not by_category_2 is None:
+                L = self.get_samples_list_by_category_2(by_category_2)
+            else:
+                L = [i for i in self.sm_matrix]
 
         return L
 
@@ -534,15 +559,19 @@ class TermSampleMatrix():
         return positive_samples_list, unlabeled_samples_list
 
     # ---------------- crossvalidation_by_category_1() ----------------
-    def crossvalidation_by_category_1(self, category_1_id, positive_ratio):
+    def crossvalidation_by_category_1(self, category_1_id, positive_ratio, random = True):
         positive_samples_list, unlabeled_samples_list = self.get_samples_list_by_category_1(category_1_id)
         logging.debug("One category - Positive:%d Unlabeled:%d" % (len(positive_samples_list), len(unlabeled_samples_list)))
         n_P_in_U = int(len(positive_samples_list) * (1 - positive_ratio))
         if len(positive_samples_list) > 0:
             if positive_ratio < 1.0:
+                idx = len(positive_samples_list)
                 n = 0
                 while n < n_P_in_U:
-                    idx = random.randint(0, len(positive_samples_list) - 1)
+                    if random:
+                        idx = random.randint(0, len(positive_samples_list) - 1)
+                    else:
+                        idx -= 1
                     unlabeled_samples_list.append(positive_samples_list[idx])
                     del positive_samples_list[idx]
                     n += 1

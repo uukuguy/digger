@@ -17,12 +17,19 @@ class FeatureWeight():
 
     @staticmethod
     def transform(tsm, fw_type, sfm = None, feature_weights = None):
+
+        logging.debug("FeatureWeight.transform() tsm: %d samples %d terms." % (tsm.get_total_samples(), tsm.get_total_terms()))
         if fw_type == FeatureWeight.TFIDF:
             sfm = FeatureWeight.transform_tfidf(tsm, sfm, feature_weights)
         elif fw_type == FeatureWeight.TFRF:
             sfm = FeatureWeight.transform_tfrf(tsm, sfm, feature_weights)
         elif fw_type == FeatureWeight.TFIPNDF:
             sfm = FeatureWeight.transform_tfipndf(tsm, sfm, feature_weights)
+
+        num_samples = sfm.get_num_samples()
+        num_features = sfm.get_num_features()
+        num_categories = sfm.get_num_categories()
+        logging.debug("FeatureWeight.transform(). sfm: %d samples %d terms %d categories." % (num_samples, num_features, num_categories))
 
         return sfm
 
@@ -80,10 +87,6 @@ class FeatureWeight():
                         sfm.add_sample_feature(sample_id, term_id, feature_weight)
 
 
-        num_samples = sfm.get_num_samples()
-        num_features = sfm.get_num_features()
-        num_categories = sfm.get_num_categories()
-        logging.debug("sfm: %d samples %d terms %d categories." % (num_samples, num_features, num_categories))
 
         return sfm
 
@@ -116,9 +119,9 @@ class FeatureWeight():
                 if -1 in term_categories:
                     c = term_categories[-1]
                 if c != 0:
-                    rf = math.log(2 + a / c)
+                    rf = math.log(2 + a / c + 1)
                 else:
-                    rf = 10.0
+                    rf = math.log(2 + a / 1)
                 sfm.feature_weights[term_id] = rf
 
 
