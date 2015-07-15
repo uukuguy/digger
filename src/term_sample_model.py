@@ -158,7 +158,13 @@ class TermSampleModel():
 
     # ---------------- get_categories() ----------------
     def get_categories(self):
-        return self.categories
+        #return self.categories
+        categories = [k for k in self.categories]
+        return categories
+
+    # ---------------- init_categories() ----------------
+    def init_categories(self, categories):
+        self.categories = categories
 
     # ---------------- set_sample_category() ----------------
     def set_sample_category(self, sample_id, category_id):

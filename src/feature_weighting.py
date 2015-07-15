@@ -16,9 +16,13 @@ class FeatureWeight():
     TFIPNDF = 2
 
     @staticmethod
-    def transform(tsm, fw_type, sfm = None, feature_weights = None):
+    def transform(tsm, fw_type, feature_weights = None):
 
         logging.debug("FeatureWeight.transform() tsm: %d samples %d terms." % (tsm.get_total_samples(), tsm.get_total_terms()))
+
+        sfm = SampleFeatureMatrix()
+        sfm.init_cagegories(tsm.get_categories())
+
         if fw_type == FeatureWeight.TFIDF:
             sfm = FeatureWeight.transform_tfidf(tsm, sfm, feature_weights)
         elif fw_type == FeatureWeight.TFRF:
@@ -36,14 +40,11 @@ class FeatureWeight():
 
     # ---------------- tranform_tfidf() ----------
     @staticmethod
-    def transform_tfidf(tsm, sfm = None, feature_weights = None):
+    def transform_tfidf(tsm, sfm, feature_weights = None):
 
         sm_matrix = tsm.sm_matrix
         tm_matrix = tsm.tm_matrix
 
-        if sfm is None:
-            logging.debug("transform_tfidf() sfm is None.")
-            sfm = SampleFeatureMatrix()
         total_samples = len(sm_matrix)
 
         #num_samples = sfm.get_num_samples()
@@ -96,9 +97,7 @@ class FeatureWeight():
     # a : samples in positive category.
     # c : samples in negative category
     @staticmethod
-    def transform_tfrf(tsm, sfm = None, feature_weights = None):
-        if sfm is None:
-            sfm = SampleFeatureMatrix()
+    def transform_tfrf(tsm, sfm, feature_weights = None):
 
         if feature_weights is None:
             sfm.feature_weights = {}
@@ -149,9 +148,7 @@ class FeatureWeight():
 
     # ---------------- tranform_tfipndf() ----------
     @staticmethod
-    def transform_tfipndf(tsm, sfm = None, feature_weights = None):
-        if sfm is None:
-            sfm = SampleFeatureMatrix()
+    def transform_tfipndf(tsm, sfm, feature_weights = None):
         return sfm
 
 

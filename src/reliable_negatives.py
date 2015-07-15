@@ -324,6 +324,9 @@ class ReliableNegatives():
         # 计算spy分类概率阈值t
         Pr_spy = {}
         for sample_id in S:
+            if not sample_id in sample_categories:
+                logging.warn("Spy sample %d not in sample_categories." % (sample_id))
+                continue
             spy_category, prob, x_probs = sample_categories[sample_id]
             Pr_spy[sample_id] = x_probs[1]
         Pr_spy_list = sorted_dict_by_values(Pr_spy, reverse = False)
@@ -447,7 +450,7 @@ def do_feature_selection(tsm_positive, tsm_other):
 
     return selected_terms
 
-# ---------------- rocsvm() ----------------
+# ---------------- make_train_test_set() ----------------
 def make_train_test_set(tsm_P, tsm_U, PS, NS, US, positive_category_id):
     tsm_positive = tsm_P.clone()
     tsm_unlabeled = tsm_U.clone()
@@ -455,6 +458,7 @@ def make_train_test_set(tsm_P, tsm_U, PS, NS, US, positive_category_id):
     # Convert multi level categories to binary categories. [1, -1]
     # -------- All positive samples set category to 1
     tsm_positive.set_all_samples_category(1)
+    tsm_positive.init_categories([1, -1])
     # -------- Negative samples
     # set category to 1 if it's level-1 category equal positive_category_id,
     # otherwise set category to -1
@@ -468,6 +472,7 @@ def make_train_test_set(tsm_P, tsm_U, PS, NS, US, positive_category_id):
         else:
             tsm_unlabeled.set_sample_category(sample_id, -1)
             u0 += 1
+    tsm_unlabeled.init_categories([1, -1])
     logging.debug("tsm_unlabeled: P: %d U: %d P+U: %d" % (p0, u0, p0 + u0))
 
 
@@ -507,15 +512,13 @@ def rocsvm(tsm_train, tsm_test):
     #fw_type = FeatureWeight.TFRF
 
     # -------- sfm_train --------
-    sfm_train = SampleFeatureMatrix()
-    sfm_train.init_cagegories([1, -1])
-    sfm_train = FeatureWeight.transform(tsm_train, fw_type, sfm_train)
+    sfm_train = FeatureWeight.transform(tsm_train, fw_type)
 
     # -------- sfm_test --------
     sfm_test = SampleFeatureMatrix(feature_weights = sfm_train.feature_weights, category_id_map = sfm_train.get_category_id_map(), feature_id_map = sfm_train.get_feature_id_map())
     sfm_test.init_cagegories([1, -1])
 
-    sfm_test = FeatureWeight.transform(tsm_test, fw_type, sfm_test, sfm_train.feature_weights)
+    sfm_test = FeatureWeight.transform(tsm_test, fw_type, feature_weights = sfm_train.feature_weights)
 
     # -------- train & predict --------
     X_train, y_train = sfm_train.to_sklearn_data()
@@ -654,6 +657,7 @@ def report_em_result(tsm_test, sample_categories):
         (likely_category_id, prob, x_probs) = sample_categories[sample_id]
 
         category_id = tsm_test.get_sample_category(sample_id)
+        #print category_id, likely_category_id
         if category_id is None:
             continue
 
