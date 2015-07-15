@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 '''
-term_sample_matrix.py 词条-样本矩阵
+term_sample_model.py 词条-样本模型
 
-    SampleMatrix: 横着 样本矩阵，描述每个样本中词条的分布情况。以样本为序(sample_id)，包括每个样本的元数据信息
+    SampleMatrix: 样本矩阵，描述每个样本中词条的分布情况。以样本为序(sample_id)，包括每个样本的元数据信息
         [{sample_id: (category, sample_terms, term_map)}]
 
         term_map: 样本中词条分布情况。所有词条(term_id)在样本中的使用次数(term_used_in_sample)。
@@ -37,7 +37,7 @@ from vocabulary import Vocabulary
 from sample_feature_matrix import SampleFeatureMatrix
 from categories import Categories
 
-class TermSampleMatrixIterator():
+class TermSampleModelIterator():
     def __init__(self, itemiteror):
         self.itemiteror = itemiteror
 
@@ -49,7 +49,7 @@ class TermSampleMatrixIterator():
         return (key, value)
 
 
-class TermSampleMatrix():
+class TermSampleModel():
 
     # ---------------- __init__() ----------
     def __init__(self, root_dir, vocabulary):
@@ -64,12 +64,13 @@ class TermSampleMatrix():
         self.tm_dir = self.root_dir + "/tm"
 
         self.categories = []
+        self.targets = {}
         self.sample_max_id = 0
 
     # ---------------- sample_matrix() ----------------
     def sample_matrix(self):
         return self.sm_matrix
-        #return TermSampleMatrixIterator(self.sm_matrix.iteritems())
+        #return TermSampleModelIterator(self.sm_matrix.iteritems())
 
     # ---------------- get_total_samples() ----------------
     def get_total_samples(self):
@@ -122,27 +123,29 @@ class TermSampleMatrix():
 
     # ---------------- clone() ----------------
     def clone(self, samples_list = None, terms_list = None):
-        term_sample_matrix = TermSampleMatrix("", self.vocabulary)
+        tsm = TermSampleModel("", self.vocabulary)
         if samples_list is None:
             for sample_id in self.sm_matrix:
                 sample_info = self.sm_matrix[sample_id]
                 if not terms_list is None:
                     sample_info = self.select_sample_features(sample_info, terms_list)
-                term_sample_matrix.sm_matrix[sample_id] = sample_info
-            term_sample_matrix.sample_max_id = self.sample_max_id
+                tsm.sm_matrix[sample_id] = sample_info
+            tsm.sample_max_id = self.sample_max_id
         else:
-            term_sample_matrix.sample_max_id = 0
+            tsm.sample_max_id = 0
             for sample_id in samples_list:
                 sample_info = self.sm_matrix[sample_id]
                 if not terms_list is None:
                     sample_info = self.select_sample_features(sample_info, terms_list)
-                term_sample_matrix.sm_matrix[sample_id] = sample_info
-                if sample_id >= term_sample_matrix.sample_max_id:
-                    term_sample_matrix.sample_max_id = sample_id + 1
+                tsm.sm_matrix[sample_id] = sample_info
+                if sample_id >= tsm.sample_max_id:
+                    tsm.sample_max_id = sample_id + 1
 
-        term_sample_matrix.rebuild_term_matrix()
+        tsm.targets = {k:self.targets[k] for k in self.targets}
+        tsm.categories = [k for k in self.categories]
+        tsm.rebuild_term_matrix()
 
-        return term_sample_matrix
+        return tsm
 
     # ---------------- rebuild_categories() ----------------
     def rebuild_categories(self):
@@ -177,6 +180,31 @@ class TermSampleMatrix():
             return category_id
         else:
             return None
+
+    # ---------------- get_targets() ----------------
+    def get_targets(self):
+        return self.targets
+
+    # ---------------- clear_targets() ----------------
+    def clear_targets(self):
+        self.targets = {}
+
+    # ---------------- get_sample_target() ----------------
+    def get_sample_target(self, sample_id):
+        if sample_id in self.targets:
+            return self.targets[sample_id]
+        else:
+            return None
+
+    # ---------------- set_sample_target() ----------------
+    def set_sample_target(self, sample_id, target_id):
+        self.targets[sample_id] = target_id
+
+    # ---------------- set_all_samples_target() ----------------
+    def set_all_samples_target(self, target_id):
+        self.clear_targets()
+        for sample_id in self.sm_matrix:
+            self.set_sample_target(sample_id, target_id)
 
     # ---------------- merge() ----------------
     def merge(self, other_tsm, renewid = False):
@@ -220,6 +248,7 @@ class TermSampleMatrix():
                 #logging.debug("Merge term matrix %d/%d" % (rowidx, len(other_tsm.tm_matrix)))
             rowidx += 1
 
+        self.targets = dict(self.targets, **other_tsm.targets)
         self.rebuild_categories()
 
 
@@ -448,7 +477,7 @@ class TermSampleMatrix():
             logging.debug("Save term matrix ...")
             self.save_term_matrix(self.tm_matrix)
 
-        logging.debug("Rebuild TermSampleMatrix Done!")
+        logging.debug("Rebuild TermSampleModel Done!")
 
         self.rebuild_categories()
 
@@ -581,3 +610,34 @@ class TermSampleMatrix():
         return positive_samples_list, unlabeled_samples_list
 
 
+    ## ---------------- get_categories_1_weight_matrix() ----------------
+    #def get_categories_1_weight_matrix(self):
+        #tsm = self
+        #categories = self.get_categories()
+
+        #cfm = CategoryFeatureMatrix()
+        #sfm = SampleFeatureMatrix()
+
+        #for category_name in categories.categories_1:
+            #category_id = categories.categories_1[category_name]
+            #positive_samples_list, unlabeled_samples_list = tsm.get_samples_list_by_category_1(category_id)
+
+            #print "\n%s(%d) Positive Samples: %d Unlabeled Samples: %d" % (category_name, category_id, len(positive_samples_list), len(unlabeled_samples_list))
+
+            #terms_positive_degree = get_terms_positive_degree_by_category(tsm, positive_samples_list, unlabeled_samples_list)
+            #features = {}
+            #for term_id in terms_positive_degree:
+                #(pd_word, specialty, popularity) = terms_positive_degree[term_id]
+                #features[term_id] = pd_word
+            #cfm.set_features(category_id, features)
+
+            #for sample_id in positive_samples_list:
+                #(sample_category, sample_terms, term_map) = tsm.get_sample_row(sample_id)
+                #category_1_id = Categories.get_category_1_id(sample_category)
+                #sfm.set_sample_category(sample_id, category_1_id)
+                #for term_id in term_map:
+                    #if term_id in terms_positive_degree:
+                        #(pd_word, specialty, popularity) = terms_positive_degree[term_id]
+                        #sfm.add_sample_feature(sample_id, term_id, pd_word)
+
+        #return cfm, sfm

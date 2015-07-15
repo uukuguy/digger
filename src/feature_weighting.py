@@ -7,7 +7,7 @@ feature_weighting.py 特征权值算法
 from __future__ import division
 import logging
 import math
-from term_sample_matrix import TermSampleMatrix
+from term_sample_model import TermSampleModel
 from sample_feature_matrix import SampleFeatureMatrix
 
 class FeatureWeight():

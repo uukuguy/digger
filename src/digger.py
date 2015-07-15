@@ -154,7 +154,11 @@ def do_sem(corpus_dir, positive_name, unlabeled_name, result_dir):
 
     logging.debug("S-EM ...")
 
-    positive_category_id = 4000000
+    #positive_category_id = 1000000 # 供电服务
+    #positive_category_id = 2000000 # 人资管理
+    positive_category_id = 4000000 # 安全生产
+    #positive_category_id = 6000000 # 党建作风
+    #positive_category_id = 8000000 # 依法治企
     positive_ratio = 0.8
     tsm = samples_positive.tsm
     #for sample_id in tsm.sample_matrix():
@@ -180,19 +184,21 @@ def do_sem(corpus_dir, positive_name, unlabeled_name, result_dir):
 
 
 # ---------------- do_test() ----------------
-def do_test(corpus_dir, positive_name_list, unlabeled_name, model_file, svm_file):
+def do_test(corpus_dir, positive_name, unlabeled_name, model_file, svm_file):
     corpus = Corpus(corpus_dir)
     #corpus.vocabulary.load()
 
-    samples_positive = None
-    for positive_name in positive_name_list:
-        samples = Samples(corpus, positive_name)
-        samples.load()
-        if samples_positive is None:
-            samples_positive = samples
-        else:
-            samples_positive.merge(samples)
-            samples = None
+    samples_positive = Samples(corpus, positive_name)
+    samples_positive.load()
+    #samples_positive = None
+    #for positive_name in positive_name_list:
+        #samples = Samples(corpus, positive_name)
+        #samples.load()
+        #if samples_positive is None:
+            #samples_positive = samples
+        #else:
+            #samples_positive.merge(samples)
+            #samples = None
 
     samples_unlabeled = Samples(corpus, unlabeled_name)
     samples_unlabeled.load()
@@ -312,7 +318,7 @@ def main():
 
     xls_file = args['--xls_file']
     if args['test']:
-        do_test(corpus_dir, positive_name_list, unlabeled_name, model_file, svm_file)
+        do_test(corpus_dir, positive_name, unlabeled_name, model_file, svm_file)
     elif args['import_samples']:
         do_import_samples(corpus_dir, samples_name, xls_file)
     elif args['export_samples']:

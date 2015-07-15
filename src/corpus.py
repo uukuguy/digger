@@ -6,7 +6,7 @@ corpus.py - 语料库（所有文本共享同一词汇表）
 Samples - 样本集合。
     samples.tsm - 样本集合的词条样本矩阵。
 
-TermSampleMatrix - 词条样本矩阵
+TermSampleModel - 词条-样本模型
     词条矩阵tm_matrix，记录每一样本中所有词条分别出现的次数。
     样本矩阵sm_matrix，记录每一词条在所有出现过的样本中出现的次数。
 
@@ -32,7 +32,7 @@ from scipy.sparse import csr_matrix
 
 from utils import *
 from vocabulary import Vocabulary, SegmentMethod
-from term_sample_matrix import TermSampleMatrix
+from term_sample_model import TermSampleModel
 from feature_selection import calculate_term_positive_degree, get_terms_positive_degree_by_category
 import positive_degree as pd
 from classifier import Classifier
@@ -73,7 +73,7 @@ class Samples():
         #self.categories.load_categories()
         #self.categories.print_categories()
 
-        self.tsm = TermSampleMatrix(self.root_dir, self.corpus.vocabulary)
+        self.tsm = TermSampleModel(self.root_dir, self.corpus.vocabulary)
 
 
     def merge(self, other_samples):
@@ -284,9 +284,9 @@ class Samples():
         categories = self.get_categories()
         for category_name in categories.categories_1:
             category_id = categories.categories_1[category_name]
-            positive_samples_list, unlabeled_samples_list = tsm.get_samples_list_by_category_1(category_id, True)
+            positive_samples_list, unlabeled_samples_list = tsm.get_samples_list_by_category_1(category_id)
 
-            print "%s(%d) Positive Samples: %d Unlabeled Samples: %d" % (category_name, category_id, len(positive_samples_list), len(unlabeled_samples_list))
+            print "\n%s(%d) Positive Samples: %d Unlabeled Samples: %d" % (category_name, category_id, len(positive_samples_list), len(unlabeled_samples_list))
 
             terms_positive_degree = get_terms_positive_degree_by_category(tsm, positive_samples_list, unlabeled_samples_list)
             features = {}
@@ -303,6 +303,7 @@ class Samples():
                     if term_id in terms_positive_degree:
                         (pd_word, specialty, popularity) = terms_positive_degree[term_id]
                         sfm.add_sample_feature(sample_id, term_id, pd_word)
+                        no_terms = False
 
         return cfm, sfm
 
@@ -322,7 +323,7 @@ class Samples():
         categories = self.get_categories()
         for category_name in categories.categories_2:
             category_id = categories.categories_2[category_name]
-            positive_samples_list, unlabeled_samples_list = tsm.get_samples_list_by_category_2(category_id, True)
+            positive_samples_list, unlabeled_samples_list = tsm.get_samples_list_by_category_2(category_id)
 
             print "%s(%d) Positive Samples: %d Unlabeled Samples: %d" % (category_name, category_id, len(positive_samples_list), len(unlabeled_samples_list))
 

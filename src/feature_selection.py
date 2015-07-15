@@ -9,7 +9,7 @@ from __future__ import division
 import logging
 import math
 import logging
-from term_sample_matrix import TermSampleMatrix
+from term_sample_model import TermSampleModel
 
 
 # ---------------- calculate_term_specialty() ----------------

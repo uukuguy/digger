@@ -23,8 +23,8 @@ def PULearning_test(samples_positive, samples_unlabeled):
     threshold_specialty = 0.8
     threshold_popularity = 0.01
 
-    tsm_positive = samples_positive.term_sample_matrix
-    tsm_unlabeled = samples_unlabeled.term_sample_matrix
+    tsm_positive = samples_positive.tsm
+    tsm_unlabeled = samples_unlabeled.tsm
 
     terms_positive_degree = select_features_by_positive_degree(tsm_positive, tsm_unlabeled, (threshold_pd_word, threshold_specialty, threshold_popularity))
 

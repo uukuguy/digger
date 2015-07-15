@@ -19,6 +19,8 @@ def sne(samples, result_dir):
     title = 'Negative Opinions'
 
     cfm, sfm = samples.get_categories_1_weight_matrix()
+    sfm.save_to_svmfile("./result/%s_sfm.svm" % (samples.name))
+
     X, y = sfm.to_sklearn_data()
     total_categories = sfm.get_num_categories()
 

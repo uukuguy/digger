@@ -14,6 +14,7 @@ import bidict
 import msgpack
 import tokenize
 import StringIO
+from utils import sorted_dict
 
 class SampleFeatureMatrix():
     def __init__(self, feature_weights = None, category_id_map = None, feature_id_map = None):
@@ -131,7 +132,9 @@ class SampleFeatureMatrix():
         indptr = [0]
         indices = []
         data = []
-        for sample_id in self.sf_matrix:
+        for sample_id in self.sample_categories:
+            if not sample_id in self.sf_matrix:
+                continue
             (features) = self.sf_matrix[sample_id]
 
             for feature_id in features:
@@ -146,7 +149,7 @@ class SampleFeatureMatrix():
         X = csr_matrix((data, indices, indptr), dtype=np.float64, shape=(self.get_num_samples(), self.get_num_features()))
 
         categories = []
-        for sample_id in self.sf_matrix:
+        for sample_id in self.sample_categories:
             category_id = self.sample_categories[sample_id]
             category_idx = self.get_category_idx(category_id)
             categories.append(category_idx)
@@ -181,12 +184,12 @@ class SampleFeatureMatrix():
 
     # ---------------- save_to_svm_file() ----------
     def save_to_svmfile(self, svmfile):
-        if svmfile is str:
-            f = open(svmfile, 'wb+')
-        else:
-            f = svmfile
+        f = open(svmfile, 'wb+')
 
-        for sample_id in self.sf_matrix:
+        for sample_id in self.sample_categories:
+            if not sample_id in self.sf_matrix:
+                continue
+
             category_id = self.sample_categories[sample_id]
             category_idx = self.get_category_idx(category_id)
             f.write("%d " % (category_idx))
@@ -201,8 +204,7 @@ class SampleFeatureMatrix():
                     f.write("%d:%.6f " % (feature_idx, feature_weight))
             f.write("\n")
 
-        if svmfile is str:
-            f.close()
+        f.close()
 
 
     # ---------------- load_from_svmfile() ----------
