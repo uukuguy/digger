@@ -13,15 +13,15 @@ from sample_feature_matrix import SampleFeatureMatrix
 from category_feature_matrix import CategoryFeatureMatrix
 from categories import Categories
 
-def sne(samples, result_dir):
+def sne(samples, result_dir, include_null_samples):
     csv_file = "%s/%s_sne.csv" % (result_dir, samples.name)
     html_file = "%s/%s.html" % (result_dir, samples.name)
     title = 'Negative Opinions'
 
     cfm, sfm = samples.get_categories_1_weight_matrix()
-    sfm.save_to_svmfile("./result/%s_sfm.svm" % (samples.name))
+    sfm.save_to_svmfile("./result/%s_sfm.svm" % (samples.name), include_null_samples)
 
-    X, y = sfm.to_sklearn_data()
+    X, y = sfm.to_sklearn_data(include_null_samples)
     total_categories = sfm.get_num_categories()
 
     logging.debug("Do TSNE...")

@@ -4,7 +4,7 @@
 sample_feature_matrix.py - 样本特征矩阵
 
 SampleFeatureMatrix.samples
-    {sample_id, ({feature_idx:feature_weight})}
+    {sample_id, (category_id, {feature_idx:feature_weight})}
 
 '''
 
@@ -17,14 +17,8 @@ import StringIO
 from utils import sorted_dict
 
 class SampleFeatureMatrix():
-    def __init__(self, feature_weights = None, category_id_map = None, feature_id_map = None):
-        self.sample_categories = {}
+    def __init__(self, category_id_map = None, feature_id_map = None):
         self.sf_matrix = {}
-
-        if feature_weights is None:
-            self.feature_weights = {}
-        else:
-            self.feature_weights = feature_weights
 
         # feature_id 与 feature_idx 双向映射
         if feature_id_map is None:
@@ -38,7 +32,6 @@ class SampleFeatureMatrix():
             self.__category_id_map = category_id_map
 
     def clear(self):
-        self.sample_categories = {}
         self.sf_matrix = {}
         self.__feature_id_map = bidict.bidict()
         self.__category_id_map = bidict.bidict()
@@ -92,26 +85,30 @@ class SampleFeatureMatrix():
     # ---------------- set_sample_category() ----------
     def set_sample_category(self, sample_id, category_id):
         category_idx = self.__category_id_map.setdefault(category_id, len(self.__category_id_map))
-        self.sample_categories[sample_id] = category_id
-        self.sf_matrix[sample_id] = ({})
+
+        if sample_id in self.sf_matrix:
+            (category_old, feature_weights) = self.sf_matrix[sample_id]
+            self.sf_matrix[sample_id] = (category_id, feature_weights)
+        else:
+            self.sf_matrix[sample_id] = (category_id, {})
+
         return category_idx
 
     # ---------------- add_sample_feature() ----------
     def add_sample_feature(self, sample_id, feature_id, feature_weight):
         feature_idx = self.__feature_id_map.setdefault(feature_id, len(self.__feature_id_map))
         if sample_id in self.sf_matrix:
-            (features) = self.sf_matrix[sample_id]
-            features[feature_id] = feature_weight
-            self.sf_matrix[sample_id] = (features)
+            (category_id, feature_weights) = self.sf_matrix[sample_id]
+            feature_weights[feature_id] = feature_weight
+            self.sf_matrix[sample_id] = (category_id, feature_weights)
         else:
-            self.sf_matrix[sample_id] = ({feature_id:feature_weight})
+            self.sf_matrix[sample_id] = (category_id, {feature_id:feature_weight})
 
-        self.feature_weights[feature_id] = feature_weight
 
     # ---------------- get_sample_category() ----------
     def get_sample_category(self, sample_id):
-        if sample_id in self.sample_categories:
-            category_id = self.sample_categories[sample_id]
+        if sample_id in self.sf_matrix:
+            (category_id, _) = self.sf_matrix[sample_id]
             return category_id
         else:
             return None
@@ -119,40 +116,49 @@ class SampleFeatureMatrix():
     # ---------------- get_sample_feature() ----------
     def get_sample_feature(self, sample_id, feature_id):
         if sample_id in self.sf_matrix:
-            (features) = self.sf_matrix[sample_id]
-            if feature_id in features:
-                return features[feature_id]
+            (category_id, feature_weights) = self.sf_matrix[sample_id]
+            if feature_id in feature_weights:
+                return feature_weights[feature_id]
             else:
                 return None
         else:
             return None
 
     # ---------------- to_sklearn_data() ----------
-    def to_sklearn_data(self):
+    def to_sklearn_data(self, include_null_samples):
         indptr = [0]
         indices = []
         data = []
-        for sample_id in self.sample_categories:
-            if not sample_id in self.sf_matrix:
-                continue
-            (features) = self.sf_matrix[sample_id]
 
-            for feature_id in features:
+        num_samples = 0
+        num_features = self.get_num_features()
+        categories = []
+        for sample_id in self.sf_matrix:
+            (category_id, feature_weights) = self.sf_matrix[sample_id]
+            if len(feature_weights) == 0:
+                if not include_null_samples:
+                    continue
+
+            category_idx = self.get_category_idx(category_id)
+            categories.append(category_idx)
+
+            for feature_id in feature_weights:
                 feature_idx = self.get_feature_idx(feature_id)
                 indices.append(feature_idx)
-                feature_weight = features[feature_id]
+                feature_weight = feature_weights[feature_id]
                 data.append(feature_weight)
             indptr.append(len(indices))
+
+            num_samples += 1
+
         #print data
         #print indices
         #print indptr
-        X = csr_matrix((data, indices, indptr), dtype=np.float64, shape=(self.get_num_samples(), self.get_num_features()))
 
-        categories = []
-        for sample_id in self.sample_categories:
-            category_id = self.sample_categories[sample_id]
-            category_idx = self.get_category_idx(category_id)
-            categories.append(category_idx)
+        if num_features != self.get_num_features():
+            logging.warn("SampleFeatureMatrix.to_sklearn_data() %d samples have no feature." % (self.get_num_features() - num_features))
+
+        X = csr_matrix((data, indices, indptr), dtype=np.float64, shape=(num_samples, num_features))
         y = categories
 
         return X, y
@@ -183,19 +189,19 @@ class SampleFeatureMatrix():
             self.__category_id_map[category_id] = category_id_map[category_id]
 
     # ---------------- save_to_svm_file() ----------
-    def save_to_svmfile(self, svmfile):
+    def save_to_svmfile(self, svmfile, include_null_samples):
         f = open(svmfile, 'wb+')
 
-        for sample_id in self.sample_categories:
-            if not sample_id in self.sf_matrix:
-                continue
+        for sample_id in self.sf_matrix:
+            (category_id, feature_weights) = self.sf_matrix[sample_id]
+            if len(feature_weights) == 0:
+                if not include_null_samples:
+                    continue
 
-            category_id = self.sample_categories[sample_id]
             category_idx = self.get_category_idx(category_id)
             f.write("%d " % (category_idx))
 
-            (features) = self.sf_matrix[sample_id]
-            features_idx = { self.get_feature_idx(feature_id):features[feature_id] for feature_id in features}
+            features_idx = { self.get_feature_idx(feature_id):feature_weights[feature_id] for feature_id in feature_weights}
             features_list = sorted_dict(features_idx)
             for (feature_idx, feature_weight) in features_list:
                 if feature_weight.__class__ is int:

@@ -100,7 +100,6 @@ class FeatureWeight():
     def transform_tfrf(tsm, sfm, feature_weights = None):
 
         if feature_weights is None:
-            sfm.feature_weights = {}
             for term_id in tsm.term_matrix():
                 (_, (term_used, term_samples, sample_map)) = tsm.get_term_row(term_id)
                 term_categories = {}
@@ -121,7 +120,6 @@ class FeatureWeight():
                     rf = math.log(2 + a / c + 1)
                 else:
                     rf = math.log(2 + a / 1)
-                sfm.feature_weights[term_id] = rf
 
 
             for sample_id in tsm.sample_matrix():

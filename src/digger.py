@@ -292,7 +292,7 @@ def do_sne(corpus_dir, samples_name, result_dir):
     samples = Samples(corpus, samples_name)
     samples.load()
 
-    sne(samples, result_dir)
+    sne(samples, result_dir, include_null_samples = False)
 
 # ---------------- main() ----------------
 def main():

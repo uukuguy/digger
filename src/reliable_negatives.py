@@ -391,7 +391,7 @@ def calculate_representative_prototype(tsm, NS, US):
     tsm_negative = tsm.clone(NS)
     sfm_negative = FeatureWeight.transform(tsm_negative, FeatureWeight.TFIDF)
     sfm_negative.init_cagegories([1,-1])
-    X, y = sfm_negative.to_sklearn_data()
+    X, y = sfm_negative.to_sklearn_data(include_null_samples = False)
     t = 30
     m = int(t * len(NS) / (len(NS) +len(US)))
     logging.debug("Clustering NS into %d micro-clusters." % (m))
@@ -515,14 +515,14 @@ def rocsvm(tsm_train, tsm_test):
     sfm_train = FeatureWeight.transform(tsm_train, fw_type)
 
     # -------- sfm_test --------
-    sfm_test = SampleFeatureMatrix(feature_weights = sfm_train.feature_weights, category_id_map = sfm_train.get_category_id_map(), feature_id_map = sfm_train.get_feature_id_map())
+    sfm_test = SampleFeatureMatrix(category_id_map = sfm_train.get_category_id_map(), feature_id_map = sfm_train.get_feature_id_map())
     sfm_test.init_cagegories([1, -1])
 
-    sfm_test = FeatureWeight.transform(tsm_test, fw_type, feature_weights = sfm_train.feature_weights)
+    sfm_test = FeatureWeight.transform(tsm_test, fw_type)
 
     # -------- train & predict --------
-    X_train, y_train = sfm_train.to_sklearn_data()
-    X_test, y_test = sfm_test.to_sklearn_data()
+    X_train, y_train = sfm_train.to_sklearn_data(include_null_samples = False)
+    X_test, y_test = sfm_test.to_sklearn_data(include_null_samples = False)
 
     clf = Classifier()
     clf.train(X_train, y_train)
