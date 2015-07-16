@@ -159,13 +159,14 @@ def do_sem(corpus_dir, positive_name, unlabeled_name, result_dir):
     positive_category_id = 4000000 # 安全生产
     #positive_category_id = 6000000 # 党建作风
     #positive_category_id = 8000000 # 依法治企
-    positive_ratio = 0.8
+    positive_ratio = 0.4
+    negative_ratio = 0.66 # ratio of remaing samples. (1 - positive_ratio) * negative_ratio
     tsm = samples_positive.tsm
     #for sample_id in tsm.sample_matrix():
         #category_id = tsm.get_sample_category(sample_id)
         #print sample_id, category_id
 
-    positive_samples_list, unlabeled_samples_list = tsm.crossvalidation_by_category_1(positive_category_id, positive_ratio, random = False)
+    positive_samples_list, unlabeled_samples_list = tsm.crossvalidation_by_category_1(positive_category_id, positive_ratio, negative_ratio, positive_random = False, negative_random = False)
 
     tsm_positive = tsm.clone(positive_samples_list)
     tsm_unlabeled = tsm.clone(unlabeled_samples_list)

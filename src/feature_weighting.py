@@ -16,12 +16,13 @@ class FeatureWeight():
     TFIPNDF = 2
 
     @staticmethod
-    def transform(tsm, fw_type, feature_weights = None):
+    def transform(tsm, sfm, fw_type, feature_weights = None):
 
         logging.debug("FeatureWeight.transform() tsm: %d samples %d terms." % (tsm.get_total_samples(), tsm.get_total_terms()))
 
-        sfm = SampleFeatureMatrix()
-        sfm.init_cagegories(tsm.get_categories())
+        if sfm is None:
+            sfm = SampleFeatureMatrix()
+            sfm.init_cagegories(tsm.get_categories())
 
         if fw_type == FeatureWeight.TFIDF:
             sfm = FeatureWeight.transform_tfidf(tsm, sfm, feature_weights)

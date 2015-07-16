@@ -110,12 +110,12 @@ class TermSampleModel():
     def close_db(self, db):
         db = None
 
-    def select_sample_features(self, sample_info, terms_list):
+    def select_sample_features(self, sample_info, terms_set):
         (category_id, sample_terms, term_map) = sample_info
         #sample_terms = 0
         new_term_map = {}
         for term_id in term_map:
-            if term_id in terms_list:
+            if term_id in terms_set:
                 term_used_in_sample = term_map[term_id]
                 new_term_map[term_id] = term_used_in_sample
                 #sample_terms += term_used_in_sample
@@ -123,20 +123,25 @@ class TermSampleModel():
 
     # ---------------- clone() ----------------
     def clone(self, samples_list = None, terms_list = None):
+        if terms_list is None:
+            terms_set = None
+        else:
+            terms_set = set(terms_list)
+
         tsm = TermSampleModel("", self.vocabulary)
         if samples_list is None:
             for sample_id in self.sm_matrix:
                 sample_info = self.sm_matrix[sample_id]
-                if not terms_list is None:
-                    sample_info = self.select_sample_features(sample_info, terms_list)
+                if not terms_set is None:
+                    sample_info = self.select_sample_features(sample_info, terms_set)
                 tsm.sm_matrix[sample_id] = sample_info
             tsm.sample_max_id = self.sample_max_id
         else:
             tsm.sample_max_id = 0
             for sample_id in samples_list:
                 sample_info = self.sm_matrix[sample_id]
-                if not terms_list is None:
-                    sample_info = self.select_sample_features(sample_info, terms_list)
+                if not terms_set is None:
+                    sample_info = self.select_sample_features(sample_info, terms_set)
                 tsm.sm_matrix[sample_id] = sample_info
                 if sample_id >= tsm.sample_max_id:
                     tsm.sample_max_id = sample_id + 1
@@ -522,6 +527,11 @@ class TermSampleModel():
 
         return X, y, terms, category_map
 
+    # ---------------- get_terms_list() ----------------
+    def get_terms_list(self):
+        terms_list = [term_id for term_id in self.tm_matrix]
+        return terms_list
+
     # ---------------- get_samples_list() ----------------
     def get_samples_list(self, by_category_1 = None, by_category_2 = None, exclude = False):
         if exclude:
@@ -594,26 +604,51 @@ class TermSampleModel():
         return positive_samples_list, unlabeled_samples_list
 
     # ---------------- crossvalidation_by_category_1() ----------------
-    def crossvalidation_by_category_1(self, category_1_id, positive_ratio, random = True):
+    def crossvalidation_by_category_1(self, category_1_id, positive_ratio, negative_ratio, positive_random = True, negative_random = True):
+        selected_positive_samples = []
+
         positive_samples_list, unlabeled_samples_list = self.get_samples_list_by_category_1(category_1_id)
         logging.debug("One category - Positive:%d Unlabeled:%d" % (len(positive_samples_list), len(unlabeled_samples_list)))
-        n_P_in_U = int(len(positive_samples_list) * (1 - positive_ratio))
+        if positive_ratio < 1.0:
+            n_pure_P = int(len(positive_samples_list) * positive_ratio)
+        else:
+            n_pure_P = len(positive_samples_list)
+
+        if negative_ratio < 1.0:
+            n_P_in_U = int(len(positive_samples_list) * (1 - positive_ratio) * negative_ratio)
+        else:
+            n_P_in_U = len(positive_samples_list) - n_pure_P
+
         if len(positive_samples_list) > 0:
             if positive_ratio < 1.0:
-                idx = len(positive_samples_list)
+
                 n = 0
-                while n < n_P_in_U:
-                    if random:
+                while n < n_pure_P:
+                    if positive_random:
                         idx = random.randint(0, len(positive_samples_list) - 1)
                     else:
-                        idx -= 1
-                    unlabeled_samples_list.append(positive_samples_list[idx])
+                        idx = 0
+                    selected_positive_samples.append(positive_samples_list[idx])
                     del positive_samples_list[idx]
                     n += 1
-        total_P = len(positive_samples_list)
+
+                selected_negative_samples = []
+                n = 0
+                while n < n_P_in_U:
+                    if negative_random:
+                        idx = random.randint(0, len(positive_samples_list) - 1)
+                    else:
+                        idx = 0
+                    #logging.debug("len(positive_samples_list): %d idx: %d" % (len(positive_samples_list), idx))
+                    selected_negative_samples.append(positive_samples_list[idx])
+                    del positive_samples_list[idx]
+                    n += 1
+                unlabeled_samples_list += selected_negative_samples
+
+        total_P = len(selected_positive_samples)
         total_U = len(unlabeled_samples_list)
-        logging.debug("CrossValidation - ratio: %.3f P:%d U:%d P_in_U: %d U_in_U: %d" % (positive_ratio, total_P, total_U, n_P_in_U, total_U - n_P_in_U))
-        return positive_samples_list, unlabeled_samples_list
+        logging.debug("CrossValidation - positive ratio: %.3f negative ratio: %.3f P:%d U:%d P_in_U: %d U_in_U: %d" % (positive_ratio, negative_ratio, total_P, total_U, n_P_in_U, total_U - n_P_in_U))
+        return selected_positive_samples, unlabeled_samples_list
 
 
     ## ---------------- get_categories_1_weight_matrix() ----------------

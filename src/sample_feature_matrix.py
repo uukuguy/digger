@@ -124,6 +124,17 @@ class SampleFeatureMatrix():
         else:
             return None
 
+    # ---------------- get_samples_list() ----------
+    def get_samples_list(self, include_null_samples):
+        samples_list = []
+        for sample_id in self.sf_matrix:
+            (category_id, feature_weights) = self.sf_matrix[sample_id]
+            if len(feature_weights) == 0:
+                if not include_null_samples:
+                    continue
+            samples_list.append(sample_id)
+        return samples_list
+
     # ---------------- to_sklearn_data() ----------
     def to_sklearn_data(self, include_null_samples):
         indptr = [0]

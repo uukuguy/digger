@@ -494,14 +494,24 @@ def make_train_test_set(tsm_P, tsm_U, PS, NS, US, positive_category_id):
     tsm_other = tsm_diffns
     selected_terms = do_feature_selection(tsm_positive, tsm_other)
     logging.debug("After do_feature_selection() selected %d terms." % (len(selected_terms)))
+    #selected_terms = None
 
     # -------- tsm_train --------
     tsm_train = tsm_positive.clone(terms_list = selected_terms)
+    logging.debug("tsm_train cloned.")
+    if selected_terms is None:
+        selected_terms = tsm_train.get_terms_list()
+        logging.debug("selected_terms is None. use tsm_train %d terms" % (len(selected_terms)))
+    else:
+        logging.debug("%d selected terms" % (len(selected_terms)))
     tsm_diffns = tsm_diffns.clone(terms_list = selected_terms)
+    logging.debug("tsm_diffns cloned.")
     tsm_train.merge(tsm_diffns, renewid = False)
+    logging.debug("tsm_train merged tsm_diffns. %d samples %d terms" % (tsm_train.get_total_samples(), tsm_train.get_total_terms()))
 
     # -------- tsm_test --------
     tsm_test = tsm_unlabeled.clone(terms_list = selected_terms)
+    logging.debug("tsm_test cloned using %d selected terms. %d samples %d terms" % (len(selected_terms), tsm_test.get_total_samples(), tsm_test.get_total_terms()))
 
     return tsm_train, tsm_test
 
@@ -512,22 +522,45 @@ def rocsvm(tsm_train, tsm_test):
     #fw_type = FeatureWeight.TFRF
 
     # -------- sfm_train --------
-    sfm_train = FeatureWeight.transform(tsm_train, fw_type)
+    logging.debug("rocsvm() transform tsm_train(%d samples %d terms) ..." % (tsm_train.get_total_samples(),  tsm_train.get_total_terms()))
+
+    sfm_train = SampleFeatureMatrix()
+    sfm_train = FeatureWeight.transform(tsm_train, sfm_train, fw_type)
 
     # -------- sfm_test --------
+    logging.debug("rocsvm() transform tsm_test(%d samples %d terms) ..." % (tsm_test.get_total_samples(),  tsm_test.get_total_terms()))
+
     sfm_test = SampleFeatureMatrix(category_id_map = sfm_train.get_category_id_map(), feature_id_map = sfm_train.get_feature_id_map())
     sfm_test.init_cagegories([1, -1])
 
-    sfm_test = FeatureWeight.transform(tsm_test, fw_type)
+    sfm_test = FeatureWeight.transform(tsm_test, sfm_test, fw_type)
 
+    include_null_samples = True
     # -------- train & predict --------
-    X_train, y_train = sfm_train.to_sklearn_data(include_null_samples = False)
-    X_test, y_test = sfm_test.to_sklearn_data(include_null_samples = False)
+    logging.debug("rocsvm() to_sklearn_data sfm_train(%d samples %d features %d categories) ..." % (sfm_train.get_num_samples(), sfm_train.get_num_features(), sfm_train.get_num_categories()))
+    X_train, y_train = sfm_train.to_sklearn_data(include_null_samples = include_null_samples)
+
+    logging.debug("rocsvm() to_sklearn_data sfm_test(%d samples %d features %d categories) ..." % (sfm_test.get_num_samples(), sfm_test.get_num_features(), sfm_test.get_num_categories()))
+    X_test, y_test = sfm_test.to_sklearn_data(include_null_samples = include_null_samples)
 
     clf = Classifier()
     clf.train(X_train, y_train)
 
-    clf.predict(X_test, y_test, [u"Positive", u"Negative"])
+    y_pred = clf.predict(X_test, y_test, [u"Positive", u"Negative"])
+
+    P_pred = []
+    N_pred = []
+    test_samples_list = sfm_test.get_samples_list(include_null_samples = include_null_samples)
+    idx = 0
+    for sample_id in test_samples_list:
+        category_id = sfm_test.get_category_id(y_pred[idx])
+        if category_id == 1:
+            P_pred.append(sample_id)
+        else:
+            N_pred.append(sample_id)
+        idx += 1
+
+    return P_pred, N_pred
 
 
 # ---------------- rn_sem() ----------------
@@ -543,15 +576,15 @@ def rn_sem(positive_category_id, tsm_positive, tsm_unlabeled, result_dir):
 
     NS_best = []
     US_best = []
-    FP = FN = UP = UN = 0
-    FP0 = FN0 = UP0 = UN0 = 0
+    TP = TN = FP = FN = 0
+    TP0 = TN0 = FP0 = FN0 = 0
     common_NS = []
     n = 0
     while n < 1:
         NS, US = rn.sem_step1(tsm_positive, tsm_unlabeled, spy_ratio, spy_threshold_ratio, positive_category_id)
 
-        FP, FN, UP, UN = report_sem_result(tsm_positive, tsm_unlabeled, NS, US, positive_category_id)
-        best_log.append((FP, FN, UP, UN))
+        TP, TN, FP, FN = report_sem_result(tsm_positive, tsm_unlabeled, NS, US, positive_category_id)
+        best_log.append((TP, TN, FP, FN))
 
         if n == 0:
             common_NS = NS
@@ -563,31 +596,31 @@ def rn_sem(positive_category_id, tsm_positive, tsm_unlabeled, result_dir):
             diff_NS = list(set(NS).difference(set(common_NS)))
             US = US + diff_NS
             logging.debug("======== %d common NS (P:%d, U:%d) ========" % (n, len(common_NS), len(US)))
-            FP0, FN0, UP0, UN0 = report_sem_result(tsm_positive, tsm_unlabeled, common_NS, US, positive_category_id)
+            TP0, TN0, FP0, FN0 = report_sem_result(tsm_positive, tsm_unlabeled, common_NS, US, positive_category_id)
             best_log0.append((FP0, FN0, UP0, UN0))
 
         NS_best = [i for i in NS]
         US_best = [i for i in US]
         n += 1
 
-    print " \t| FP\t| FN\t| accu\t| UP\t| UN\t|"
+    print " \t| TP\t| TN\t| accu\t| FP\t| FN\t|"
     idx = 0
-    for (FP, FN, UP, UN) in best_log:
-        if FN + FP > 0.0:
-            accu = FN / (FN + FP)
+    for (TP, TN, FP, FN) in best_log:
+        if TN + TP > 0.0:
+            accu = TN / (TN + FP)
         else:
             accu = 0.0
-        print "%d\t| %d\t| %d\t| %.3f\t| %d\t| %d\t|" % (idx, FP, FN, accu, UP, UN)
+        print "%d\t| %d\t| %d\t| %.3f\t| %d\t| %d\t|" % (idx, TP, TN, accu, FP, FN)
         idx += 1
     print
     print " \t| FP0\t| FN0\t| accu\t| UP0\t| UN0\t|"
     idx = 0
-    for (FP, FN, UP, UN) in best_log0:
-        if FN + FP > 0.0:
-            accu = FN / (FN + FP)
+    for (TP, TN, FP, FN) in best_log0:
+        if TN + TP > 0.0:
+            accu = TN / (TN + TP)
         else:
             accu = 0.0
-        print "%d\t| %d\t| %d\t| %.3f\t| %d\t| %d\t|" % (idx, FP, FN, accu, UP, UN)
+        print "%d\t| %d\t| %d\t| %.3f\t| %d\t| %d\t|" % (idx, TP, TN, accu, FP, FN)
         idx += 1
     print
 
@@ -595,7 +628,23 @@ def rn_sem(positive_category_id, tsm_positive, tsm_unlabeled, result_dir):
 
     # -------- ROC-SVM --------
     tsm_train, tsm_test = make_train_test_set(tsm_positive, tsm_unlabeled, PS, NS_best, US_best, positive_category_id)
-    rocsvm(tsm_train, tsm_test)
+    P_pred, N_pred = rocsvm(tsm_train, tsm_test)
+
+    TP = TN = FP = FN = 0
+    for sample_id in P_pred:
+        category_id = tsm_unlabeled.get_sample_category(sample_id)
+        if Categories.get_category_1_id(category_id) == positive_category_id:
+            TP += 1
+        else:
+            TN += 1
+    for sample_id in N_pred:
+        category_id = tsm_unlabeled.get_sample_category(sample_id)
+        if Categories.get_category_1_id(category_id) == positive_category_id:
+            FP += 1
+        else:
+            FN += 1
+
+    show_confusion_matrix(TP, TN, FP, FN)
 
     # -------- S-EM --------
     #rn.sem_step2(tsm_positive, tsm_unlabeled, PS, NS_best, US_best, positive_category_id)
@@ -606,47 +655,91 @@ def rn_sem(positive_category_id, tsm_positive, tsm_unlabeled, result_dir):
 
 # ---------------- report_sem_result() ----------------
 def report_sem_result(tsm_positive, tsm_unlabeled, NS, US, positive_category_id):
-    FN = 0
-    FP = 0
+    TN = 0
+    TP = 0
     for sample_id in NS:
         category_id = tsm_unlabeled.get_sample_category(sample_id)
         category_1_id = Categories.get_category_1_id(category_id)
         if category_id is None:
             logging.warn("category_id is None in NS. sample_id: %d positive_category_id: %d" % (sample_id, positive_category_id))
         if category_1_id != positive_category_id:
-            FN += 1
+            TN += 1
         else:
-            FP += 1
+            TP += 1
 
-    UP = 0
-    UN = 0
+    FP = 0
+    FN = 0
     for sample_id in US:
         category_id = tsm_unlabeled.get_sample_category(sample_id)
         if category_id is None:
             logging.warn("category_id is None in US. sample_id: %d positive_category_id: %d" % (sample_id, positive_category_id))
         category_1_id = Categories.get_category_1_id(category_id)
         if category_1_id == positive_category_id:
-            UP += 1
+            FP += 1
         else:
-            UN += 1
+            FN += 1
 
-    print "Total Reliable Negatives: %d" % (FP + FN)
-    print "FP: %d FN: %d" % (FP, FN)
-    if FN + FP > 0:
-        accuracy = FN / (FN +FP)
+    print "Total Reliable Negatives: %d" % (TP + TN)
+    print "TP: %d TN: %d" % (TP, TN)
+    if TN + TP > 0:
+        accuracy = TN / (TN + TP)
     else:
         accuracy = 0.0
     print "Accuracy: %.3f" % (accuracy)
     print
-    print "Total Unlabeled: %d" % (UP + UN)
-    print "UP: %d UN: %d" % (UP, UN)
+    print "Total Unlabeled: %d" % (FP + FN)
+    print "FP: %d FN: %d" % (FP, FN)
     print
 
-    return FP, FN, UP, UN
+    return TP, TN, FP, FN
 
 
-# ---------------- report_iem_result() ----------------
-#def report_iem_result(tsm_test, sample_categories, positive_category_id):
+def show_confusion_matrix(TP, TN, FP, FN):
+    print "\t| True\t| False\t|"
+    print "Positive| %d\t| %d\t| %d" % (TP, FP, TP + FP)
+    print "Negative| %d\t| %d\t| %d" % (TN, FN, TN + FN)
+    print "\t| %d\t| %d\t|" % (TP + TN, FP + FN)
+    print
+
+    #print "- Positive -"
+    print "         \t precision \t recall \t F-score \t support"
+    if TP + TN != 0.0:
+        positive_accuracy = TP / (TP + TN)
+    else:
+        positive_accuracy = 0.0
+    if TP + FP != 0.0:
+        positive_recall = TP / (TP + FP)
+    else:
+        positive_recall = 0.0
+    if positive_accuracy + positive_recall != 0:
+        positive_F = 2 * positive_accuracy * positive_recall / (positive_accuracy + positive_recall)
+    else:
+        positive_F = 0.0
+    print "  Positive\t %.3f%% \t %.3f%% \t %.3f%% \t %d" % (positive_accuracy * 100, positive_recall * 100, positive_F * 100, TP + FP)
+    #print "Accuracy: %.3f%%" % (positive_accuracy * 100)
+    #print "Recall: %.3f%%" % (positive_recall * 100)
+    #print
+
+    #print "- Negative -"
+    if FN + FP != 0.0:
+        negative_accuracy = FN / (FN + FP)
+    else:
+        negative_accuracy = 0.0
+    if FN + TN != 0.0:
+        negative_recall = FN / (FN + TN)
+    else:
+        negative_recall = 0.0
+    if negative_accuracy + negative_recall != 0:
+        negative_F = 2 * negative_accuracy * negative_recall / (negative_accuracy + negative_recall)
+    else:
+        negative_F = 0.0
+    print "  Negative\t %.3f%% \t %.3f%% \t %.3f%% \t %d" % (negative_accuracy * 100, negative_recall * 100, negative_F * 100, TN + FN)
+    print
+    #print "Accuracy: %.3f%%" % (negative_accuracy * 100)
+    #print "Recall: %.3f%%" % (negative_recall * 100)
+    #print
+
+# ---------------- report_em_result() ----------------
 def report_em_result(tsm_test, sample_categories):
     TP = 0
     TN = 0
@@ -673,34 +766,7 @@ def report_em_result(tsm_test, sample_categories):
                 TN += 1
         #logging.debug("sample_id: %d positive_category_id: %d category_id: %d likely_category: %d TP %d FP %d TN %d FN %d" % (sample_id, positive_category_id, category_id, likely_category_id, TP, FP, TN, FN))
 
-    print "\t| True\t| False\t|"
-    print "Positive| %d\t| %d\t| %d" % (TP, FP, TP + FP)
-    print "Negative| %d\t| %d\t| %d" % (TN, FN, TN + FN)
-    print
-    print "- Positive -"
-    if TP + TN != 0.0:
-        positive_accuracy = TP / (TP + TN)
-    else:
-        positive_accuracy = 0.0
-    if TP + FP != 0.0:
-        positive_recall = TP / (TP + FP)
-    else:
-        positive_recall = 0.0
-    print "Accuracy: %.3f%%" % (positive_accuracy * 100)
-    print "Recall: %.3f%%" % (positive_recall * 100)
-    print
-    print "- Negative -"
-    if FN + FP != 0.0:
-        negative_accuracy = FN / (FN + FP)
-    else:
-        negative_accuracy = 0.0
-    if FN + TN != 0.0:
-        negative_recall = FN / (FN + TN)
-    else:
-        negative_recall = 0.0
-    print "Accuracy: %.3f%%" % (negative_accuracy * 100)
-    print "Recall: %.3f%%" % (negative_recall * 100)
-    print
+    show_confusion_matrix(TP, TN, FP, FN)
 
     return TP, TN, FP, FN
 

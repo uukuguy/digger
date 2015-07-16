@@ -38,6 +38,7 @@ class Classifier():
         print metrics.classification_report(y_test, y_pred, target_names=categories_names)
         print "Confusion Matrix:"
         print metrics.confusion_matrix(y_test, y_pred)
+        print
 
     # ---------------- train() ----------------
     def train(self, X_train, y_train):
