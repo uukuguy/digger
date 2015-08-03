@@ -18,6 +18,7 @@ CategoryFeatureMatrix - 类别-特征矩阵。记录每一类别中所有特征�
 
 from __future__ import division
 import sys, getopt, logging
+from logger import Logger
 import os
 from os import path
 import math
@@ -29,6 +30,7 @@ from sklearn.datasets import load_svmlight_file
 from sklearn.datasets import dump_svmlight_file
 import numpy as np
 from scipy.sparse import csr_matrix
+from threading import Lock
 
 from utils import *
 from vocabulary import Vocabulary, SegmentMethod
@@ -67,8 +69,6 @@ class Samples():
         self.content_dir = self.root_dir + "/content"
         self.db_content = leveldb.LevelDB(self.content_dir)
 
-        self.sample_maxid = self.get_sample_maxid()
-
         #self.categories = Categories(self.db_content)
         #self.categories.load_categories()
         #self.categories.print_categories()
@@ -99,28 +99,6 @@ class Samples():
     # ---------------- set_int_value_in_db() ----------------
     def set_int_value_in_db(self, db, key, value):
         db.Put(key, str(value))
-
-
-    # ---------------- get_maxid_in_db() ----------------
-    def get_maxid_in_db(self, db):
-        try:
-            maxid = self.get_int_value_in_db(db, "__maxid__")
-            return maxid
-        except KeyError:
-            return 0
-
-    # ---------------- set_maxid_in_db() ----------------
-    def set_maxid_in_db(self, db, maxid):
-        self.set_int_value_in_db(db, "__maxid__", maxid)
-
-    # ---------------- get_sample_maxid() ----------------
-    def get_sample_maxid(self):
-        return self.get_maxid_in_db(self.db_content)
-
-    # ---------------- set_sample_maxid() ----------------
-    def set_sample_maxid(self, maxid):
-        self.set_maxid_in_db(self.db_content, maxid)
-        self.sample_maxid = maxid
 
     # ---------------- get_total_samples() ----------------
     def get_total_samples(self):
@@ -158,7 +136,7 @@ class Samples():
 
             rowidx += 1
 
-        logging.debug("Get %d bad samples. None: %d Empty: %d Normal: %d" % (len(none_samples) + len(empty_samples) +len(normal_samples), len(none_samples), len(empty_samples), len(normal_samples)))
+        logging.debug(Logger.debug("Get %d bad samples. None: %d Empty: %d Normal: %d" % (len(none_samples) + len(empty_samples) +len(normal_samples), len(none_samples), len(empty_samples), len(normal_samples))))
 
         return none_samples, empty_samples, normal_samples
 
@@ -196,12 +174,11 @@ class Samples():
 
         categories.clear_categories()
 
-        max_sample_id, batch_content = import_samples_from_xls(self, categories, self.sample_maxid, xls_file)
+        batch_content = import_samples_from_xls(self, categories, xls_file)
 
         categories.save_categories()
 
         self.db_content.Write(batch_content, sync=True)
-        self.set_sample_maxid(max_sample_id)
 
 
     # ---------------- export_samples() ----------------
@@ -217,7 +194,7 @@ class Samples():
 
     # ---------------- show() ----------------
     def show(self):
-        logging.debug("Do nothing in show().")
+        logging.debug(Logger.debug("Do nothing in show()."))
 
 
     # ---------------- get_categories_useinfo() ----------------
@@ -315,7 +292,7 @@ class Samples():
             try:
                 os.mkdir(result_dir)
             except OSError:
-                logging.error("mkdir %s failed." % (result_dir))
+                logging.error(Logger.error("mkdir %s failed." % (result_dir)))
                 return
 
         tsm = self.tsm
@@ -519,7 +496,7 @@ class Samples():
             #if category_id != category:
             #print category_id, category, cat1, cat2, cat3
             self.tsm.set_sample_category(sample_id, category_id)
-            #logging.debug("[%d] %d %d=<%s:%s:%s:>" % (rowidx, sample_id, category_id, cat1, cat2, cat3))
+            #logging.debug(Logger.debug("[%d] %d %d=<%s:%s:%s:>" % (rowidx, sample_id, category_id, cat1, cat2, cat3)))
 
             rowidx += 1
 
@@ -560,12 +537,12 @@ class Samples():
             sample_id = int(row_id)
             sample_info = msgpack.loads(i[1])
             if term_map is None:
-                logging.warning("term_map %d is None." % (rowidx))
+                logging.warn(Logger.warn("term_map %d is None." % (rowidx)))
                 continue
             tm_tfidf.matrix.append((sample_id, sample_info))
 
             if rowidx % 1000 == 0:
-                logging.debug("load_tfidf_matrix() %d" % (rowidx))
+                logging.debug(Logger.debug("load_tfidf_matrix() %d" % (rowidx)))
 
             rowidx += 1
 
@@ -579,6 +556,7 @@ class Corpus():
 
     # ---------------- __init__() ----------------
     def __init__(self, corpus_dir):
+        self.lock_meta = Lock()
         self.open(corpus_dir)
 
     # ---------------- __del__() ----------------
@@ -586,11 +564,31 @@ class Corpus():
         self.close()
 
 
+    # ---------------- open_db_meta() ----------------
+    def open_db_meta(self):
+        logging.debug(Logger.debug("Corpus open_db_meta() %s" % (self.meta_dir) ))
+        db_meta = leveldb.LevelDB(self.meta_dir)
+        return db_meta
+
+    # ---------------- close_db_meta() ----------------
+    def close_db_meta(self, db_meta):
+        db_meta = None
+
+
+    def lock(self):
+        self.lock_meta.acquire()
+
+    def unlock(self):
+        self.lock_meta.release()
+
     # ---------------- open() ----------------
     def open(self, corpus_dir):
         self.root_dir = corpus_dir
         if not path.isdir(corpus_dir):
             os.mkdir(corpus_dir)
+
+        self.meta_dir = self.root_dir + "/meta"
+
         self.samples_dir = self.root_dir + "/samples"
         if not path.isdir(self.samples_dir):
             os.mkdir(self.samples_dir)
@@ -608,11 +606,39 @@ class Corpus():
         pass
 
 
+    # ---------------- acquire_sample_id() ----------------
+    # 线程安全方式获取num_samples个sample_id(全Corpus唯一)。
+    def acquire_sample_id(self, num_samples):
+        self.lock()
+        sample_id = self.get_sample_maxid()
+        sample_maxid = sample_id + num_samples
+        self.set_sample_maxid(sample_maxid)
+        self.unlock()
+
+        return sample_id
+
+    def get_sample_maxid(self):
+        sample_maxid = 0
+        db_meta = self.open_db_meta()
+        try:
+            str_maxid = db_meta.Get("__sample_maxid__")
+            sample_maxid = int(str_maxid)
+        except KeyError:
+            db_meta.Put("__sample_maxid__", "0")
+        self.close_db_meta(db_meta)
+
+        return sample_maxid
+
+    def set_sample_maxid(self, sample_maxid):
+        db_meta = self.open_db_meta()
+        db_meta.Put("__sample_maxid__", str(sample_maxid))
+        self.close_db_meta(db_meta)
+
     # ---------------- export_svm_file() ----------------
     def export_svm_file(self, samples_name, svm_file):
         samples = Samples(self, samples_name)
 
-        logging.debug("Export svm file...")
+        logging.debug(Logger.debug("Export svm file..."))
         tm_tfidf = samples.load_tfidf_matrix()
 
         save_term_matrix_as_svm_file(tm_tfidf, svm_file)

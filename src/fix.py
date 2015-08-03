@@ -6,6 +6,7 @@ fix.py
 
 import leveldb
 import logging
+from logger import Logger
 from corpus import Corpus, Samples
 from protocal import decode_sample_meta
 
@@ -124,11 +125,11 @@ class Fix():
             #cat2 = cat2.decode('utf-8')
             #cat3 = cat3.decode('utf-8')
             #if cat1 == u"农电改革":
-                #logging.debug("<%s:%s:%s:>" % (cat1, cat2, cat3))
+                #logging.debug(Logger.debug("<%s:%s:%s:>" % (cat1, cat2, cat3)))
                 #if (cat1, cat2) in cat_map:
-                    #logging.debug("Found <%s:%s::> in cat_map" % (cat1, cat2))
+                    #logging.debug(Logger.debug("Found <%s:%s::> in cat_map" % (cat1, cat2)))
                 #else:
-                    #logging.debug("Not found <%s:%s::> in cat_map" % (cat1, cat2))
+                    #logging.debug(Logger.debug("Not found <%s:%s::> in cat_map" % (cat1, cat2)))
                     #print cat2.__class__, (cat1, cat2) == (cat1, u""), (cat1, cat2) == (cat1, u"")
 
 
@@ -139,7 +140,7 @@ class Fix():
                 new_cat1, new_cat2 = cat_map[(cat1, cat2)]
                 str_sample_meta = (sample_id, category, date, title, key, url, (version, content, (new_cat1, new_cat2, new_cat3)))
                 samples.db_content.Put(str(sample_id), msgpack.dumps(str_sample_meta))
-                logging.debug("<%s:%s:%s:> -> <%s:%s:%s:>" % (cat1, cat2, cat3, new_cat1, new_cat2, new_cat3))
+                logging.debug(Logger.debug("<%s:%s:%s:> -> <%s:%s:%s:>" % (cat1, cat2, cat3, new_cat1, new_cat2, new_cat3)))
 
             rowidx += 1
 
@@ -157,19 +158,19 @@ class Fix():
 
 
             if content is None:
-                logging.debug("content is None: sample_id %d" % (sample_id))
+                logging.debug(Logger.debug("content is None: sample_id %d" % (sample_id)))
                 urls.append((sample_id, category, date, title, key, url, cat1, cat2, cat3))
             elif len(content) == 0 :
-                logging.debug("len(conntent) == 0: sample_id %d" % (sample_id))
+                logging.debug(Logger.debug("len(conntent) == 0: sample_id %d" % (sample_id)))
                 urls.append((sample_id, category, date, title, key, url, cat1, cat2, cat3))
 
             if rowidx % 100 == 0:
-                logging.debug("refresh content - %d" % (rowidx))
+                logging.debug(Logger.debug("refresh content - %d" % (rowidx)))
             rowidx += 1
 
         for (sample_id, category, date, title, key, url, cat1, cat2, cat3) in urls:
-            logging.debug("--------------------------------")
-            logging.debug("sample_id: %d url:%s" % (sample_id, url))
+            logging.debug(Logger.debug("--------------------------------"))
+            logging.debug(Logger.debug("sample_id: %d url:%s" % (sample_id, url)))
             try:
                 rsp = requests.get(url)
                 if rsp.ok:
@@ -191,7 +192,7 @@ class Fix():
                     sample_data = (sample_id, category, date, title, key, url, msgext)
                     rowstr = msgpack.dumps(sample_data)
                     db_content.Put(str(sample_id), rowstr)
-                    logging.warn("Get page failed. status: %d sample_id: %d url: %s" % (rsp.status_code, sample_id, url))
+                    logging.warn(Logger.warn("Get page failed. status: %d sample_id: %d url: %s" % (rsp.status_code, sample_id, url)))
             except:
 
                 version = "1"
@@ -199,7 +200,7 @@ class Fix():
                 sample_data = (sample_id, category, date, title, key, url, msgext)
                 rowstr = msgpack.dumps(sample_data)
                 db_content.Put(str(sample_id), rowstr)
-                logging.warn("Connection failed. sample_id: %d url: %s" % (sample_id, url))
+                logging.warn(Logger.debug("Connection failed. sample_id: %d url: %s" % (sample_id, url)))
 
 
 
@@ -214,20 +215,20 @@ class Fix():
         none_samples, empty_samples, _ = samples.get_bad_samples()
         purged_samples = [ sample_id for (sample_id, url) in none_samples]
 
-        logging.debug("Purgging %d samples...." % (len(purged_samples)))
+        logging.debug(Logger.debug("Purgging %d samples...." % (len(purged_samples))))
         total_samples = samples.get_total_samples()
 
         for sample_id in purged_samples:
             db_content.Delete(str(sample_id))
-            logging.debug("Purge None content sample %d" % (sample_id))
+            logging.debug(Logger.debug("Purge None content sample %d" % (sample_id)))
         total_samples -= len(purged_samples)
 
         for (sample_id, url) in empty_samples:
             db_content.Delete(str(sample_id))
-            logging.debug("Purge empty content sample %d" % (sample_id))
+            logging.debug(Logger.debug("Purge empty content sample %d" % (sample_id)))
         total_samples -= len(empty_samples)
 
-        logging.debug("Purge Done. Remaining %d samples." % (total_samples))
+        logging.debug(Logger.debug("Purge Done. Remaining %d samples." % (total_samples)))
 
 
         invalid_class_samples = []
@@ -248,13 +249,13 @@ class Fix():
                     invalid_categories[(cat1, cat2)] = 1
 
         for (cat1, cat2) in invalid_categories:
-            logging.debug("<I> <%s:%s::> %d" % (cat1, cat2, invalid_categories[(cat1, cat2)]))
+            logging.debug(Logger.debug("<I> <%s:%s::> %d" % (cat1, cat2, invalid_categories[(cat1, cat2)])))
 
-        logging.debug("Total invalid class samples %d in %d categories" % (len(invalid_class_samples), len(invalid_categories)) )
+        logging.debug(Logger.debug("Total invalid class samples %d in %d categories" % (len(invalid_class_samples), len(invalid_categories)) ))
 
 
         for sample_id in invalid_class_samples:
             db_content.Delete(str(sample_id))
-        logging.debug("Deleted %d invalid class samples." % (len(invalid_class_samples)))
+        logging.debug(Logger.debug("Deleted %d invalid class samples." % (len(invalid_class_samples))))
 
 

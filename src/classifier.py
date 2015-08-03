@@ -8,6 +8,7 @@ classifier.py
 
 from __future__ import division
 import logging
+from logger import Logger
 
 from sklearn import svm
 from sklearn import metrics

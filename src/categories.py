@@ -10,6 +10,7 @@ import msgpack
 import xlwt
 import leveldb
 import logging
+from logger import Logger
 from protocal import decode_sample_meta
 from utils import sorted_dict
 
@@ -245,7 +246,7 @@ class Categories():
             category_2_name = categories.get_category_name(category_2)
             category_3_name = categories.get_category_name(category_3)
 
-            logging.debug("id:%d 1:%d 2:%d 3:%d" % ( category_id, category_1, category_2, category_3))
+            logging.debug(Logger.debug("id:%d 1:%d 2:%d 3:%d" % ( category_id, category_1, category_2, category_3)))
 
             ws.write(rowidx, 0, category_id)
             ws.write(rowidx, 1, category_1_name)
@@ -256,6 +257,6 @@ class Categories():
             rowidx += 1
 
         wb.save(xls_file)
-        logging.debug("Export categories to xls file %s" % (xls_file) )
+        logging.debug(Logger.debug("Export categories to xls file %s" % (xls_file)))
 
 

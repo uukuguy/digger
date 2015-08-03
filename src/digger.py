@@ -50,6 +50,7 @@ Options:
 '''
 
 from datetime import datetime
+from logger import Logger
 import logging
 from docopt import docopt
 from globals import *
@@ -90,7 +91,7 @@ def do_rebuild(corpus_dir, samples_name):
     corpus = Corpus(corpus_dir)
     corpus.vocabulary.load()
     samples = Samples(corpus, samples_name)
-    logging.debug("Rebuild base data...")
+    logging.debug(Logger.debug("Rebuild base data..."))
     samples.rebuild()
 
 # ---------------- do_rebuild_categories() ----------------
@@ -98,7 +99,7 @@ def do_rebuild_categories(corpus_dir, samples_name):
     corpus = Corpus(corpus_dir)
     samples = Samples(corpus, samples_name)
     samples.load()
-    logging.debug("Rebuild base data...")
+    logging.debug(Logger.debug("Rebuild base data..."))
     Fix(samples).fix_categories()
     samples.rebuild_categories()
 
@@ -108,7 +109,7 @@ def do_train(corpus_dir, samples_name, model_name, result_dir):
     corpus.vocabulary.load()
     samples = Samples(corpus, samples_name)
     samples.load()
-    logging.debug("Training ...")
+    logging.debug(Logger.debug("Training ..."))
     multicategories_train(samples, model_name, result_dir)
 
 # ---------------- do_predict() ----------------
@@ -117,7 +118,7 @@ def do_predict(corpus_dir, samples_name, model_name, result_dir):
     corpus.vocabulary.load()
     samples = Samples(corpus, samples_name)
     samples.load()
-    logging.debug("Predicting ...")
+    logging.debug(Logger.debug("Predicting ..."))
     multicategories_predict(samples, model_name, result_dir)
 
 # ---------------- do_iem() ----------------
@@ -130,7 +131,7 @@ def do_iem(corpus_dir, positive_name, unlabeled_name, result_dir):
     #samples_unlabeled = Samples(corpus, unlabeled_name)
     #samples_unlabeled.load()
 
-    logging.debug("I-EM ...")
+    logging.debug(Logger.debug("I-EM ..."))
 
     positive_category_id = 4000000
     positive_ratio = 0.8
@@ -152,11 +153,11 @@ def do_sem(corpus_dir, positive_name, unlabeled_name, result_dir):
     #samples_unlabeled = Samples(corpus, unlabeled_name)
     #samples_unlabeled.load()
 
-    logging.debug("S-EM ...")
+    logger.debug(Logger.debug("S-EM ..."))
 
     #positive_category_id = 1000000 # 供电服务
     #positive_category_id = 2000000 # 人资管理
-    positive_category_id = 4000000 # 安全生产
+    positive_category_id = 6000000 # 安全生产
     #positive_category_id = 6000000 # 党建作风
     #positive_category_id = 8000000 # 依法治企
     positive_ratio = 0.4
@@ -176,7 +177,7 @@ def do_sem(corpus_dir, positive_name, unlabeled_name, result_dir):
 
     total_positive_samples = tsm_positive.get_total_samples()
     total_unlabeled_samples = tsm_unlabeled.get_total_samples()
-    logging.debug("do_sem() %d samples in tsm_positive, %d samples in tsm_unlabeled." % (total_positive_samples, total_unlabeled_samples))
+    logging.debug(Logger.debug("do_sem() %d samples in tsm_positive, %d samples in tsm_unlabeled." % (total_positive_samples, total_unlabeled_samples)))
     #for sample_id in tsm_unlabeled.sample_matrix():
         #category_id = tsm_unlabeled.get_sample_category(sample_id)
         #print sample_id, category_id
@@ -244,7 +245,7 @@ def do_query_categories(corpus_dir, samples_name, xls_file):
     samples.load()
 
     samples.query_categories(xls_file)
-    logging.info("Query categories %s/<%s> Done. %s" % (corpus_dir, samples_name, xls_file))
+    logging.info(Logger.info("Query categories %s/<%s> Done. %s" % (corpus_dir, samples_name, xls_file)))
 
 
 # ---------------- do_query_keywords() ----------------
@@ -256,7 +257,7 @@ def do_query_keywords(corpus_dir, samples_name, result_dir):
 
     samples.show_category_keywords(result_dir)
     #samples.show_keywords_matrix()
-    logging.info("Query keywords %s/<%s> Done. %s" % (corpus_dir, samples_name, result_dir))
+    logging.info(Logger.info("Query keywords %s/<%s> Done. %s" % (corpus_dir, samples_name, result_dir)))
 
 
 # ---------------- do_refresh() ----------------
@@ -312,6 +313,7 @@ def main():
     samples_name = args['--samples_name']
     model_name = args['--model_name']
     arg_sample_id = args['--sample_id']
+
     if not arg_sample_id is None:
         sample_id = int(arg_sample_id)
     else:
@@ -358,7 +360,7 @@ def main():
 
     e_time = datetime.utcnow()
     t_time = (e_time - s_time)
-    logging.info("Done.(%s)" % (str(t_time)))
+    logging.info(Logger.info("Done.(%s)" % (str(t_time))))
 
 if __name__ == '__main__':
     main()

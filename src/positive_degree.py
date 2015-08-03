@@ -8,6 +8,7 @@ positive_degree.py 正例度(Positive Degree)
 
 from __future__ import division
 import logging
+from logger import Logger
 from utils import *
 
 # ---------------- calculate_samples_positive_degree() ----------------
@@ -90,7 +91,7 @@ def save_samples_positive_degree(samples, samples_positive_degree):
 
 
         if rowidx % 1000 == 0:
-            logging.debug("Check unlabeled samples %d/%d %s" % (rowidx, len(samples_positive_degree), title))
+            logging.debug(Logger.debug("Check unlabeled samples %d/%d %s" % (rowidx, len(samples_positive_degree), title)))
         rowidx += 1
     f.close()
     f1.close()

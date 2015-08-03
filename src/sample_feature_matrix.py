@@ -15,6 +15,8 @@ import msgpack
 import tokenize
 import StringIO
 from utils import sorted_dict
+import logging
+from logger import Logger
 
 class SampleFeatureMatrix():
     def __init__(self, category_id_map = None, feature_id_map = None):
@@ -167,7 +169,7 @@ class SampleFeatureMatrix():
         #print indptr
 
         if num_features != self.get_num_features():
-            logging.warn("SampleFeatureMatrix.to_sklearn_data() %d samples have no feature." % (self.get_num_features() - num_features))
+            logging.warn(Logger.warn("SampleFeatureMatrix.to_sklearn_data() %d samples have no feature." % (self.get_num_features() - num_features)))
 
         X = csr_matrix((data, indices, indptr), dtype=np.float64, shape=(num_samples, num_features))
         y = categories
@@ -260,7 +262,7 @@ class SampleFeatureMatrix():
 
 
             #if rowidx % 1000 == 0:
-                #logging.debug("load svm: %d" % (rowidx))
+                #logging.debug(Logger.debug("load svm: %d" % (rowidx)))
             #rowidx += 1
 
         #if svmfile is str:

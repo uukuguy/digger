@@ -6,6 +6,7 @@ transform.py -
 
 import leveldb
 import logging
+from logger import Logger
 import msgpack
 import xlwt
 from utils import load_excel_to_rows
@@ -13,11 +14,14 @@ from categories import Categories
 from protocal import decode_sample_meta
 
 # ---------------- import_samples_from_xls() ----------------
-def import_samples_from_xls(samples, categories, max_sample_id, xls_file):
+def import_samples_from_xls(samples, categories, xls_file):
+    corpus = samples.corpus
+
     rows = load_excel_to_rows(xls_file)
+    num_samples = len(rows)
+    sample_id = corpus.acquire_sample_id(num_samples)
 
     batch_content = leveldb.WriteBatch()
-    sample_id = max_sample_id
     for row in rows:
         category = -1
         if u"CATEGORY" in row:
@@ -71,10 +75,10 @@ def import_samples_from_xls(samples, categories, max_sample_id, xls_file):
         batch_content.Put(str(sample_id), rowstr)
 
         if sample_id % 100 == 0:
-            logging.debug("Row: %d/%d %s %s" % (sample_id, len(rows), date, title))
+            logging.debug(Logger.debug("Row: %d/%d %s %s" % (sample_id, len(rows), date, title)))
         sample_id += 1
 
-    return sample_id, batch_content
+    return batch_content
 
 
 # ---------------- export_samples_to_xls() ----------------
@@ -112,7 +116,7 @@ def export_samples_to_xls(samples, xls_file):
         ws.write(rowidx + 1, 7, content)
 
         if rowidx % 100 == 0:
-            logging.debug("[%d] %d %s" % (rowidx, sample_id, title))
+            logging.debug(Logger.debug("[%d] %d %s" % (rowidx, sample_id, title)))
         rowidx += 1
 
     wb.save(xls_file)

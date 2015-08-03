@@ -6,9 +6,9 @@ feature_selection.py 特征选择算法
 '''
 
 from __future__ import division
-import logging
 import math
 import logging
+from logger import Logger
 from term_sample_model import TermSampleModel
 
 
@@ -22,13 +22,13 @@ def calculate_term_specialty(term_id, tsm_positive, tsm_unlabeled):
     else:
         term_used_P = 0
     tf_P = term_used_P / tsm_positive.total_terms_used
-    #logging.debug("Specialty_P: %d/%d" % (term_used_P, tsm_positive.total_terms_used))
+    #logging.debug(Logger.debug("Specialty_P: %d/%d" % (term_used_P, tsm_positive.total_terms_used)))
 
     tf_U = 0.0
     if term_id in tm_unlabeled:
         (_, (term_used_U, _, _)) = tm_unlabeled[term_id]
         tf_U = term_used_U / tsm_unlabeled.total_terms_used
-        #logging.debug("Specialty_U: %d/%d" % (term_used_U, tsm_unlabeled.total_terms_used))
+        #logging.debug(Logger.debug("Specialty_U: %d/%d" % (term_used_U, tsm_unlabeled.total_terms_used)))
     specialty = tf_P / (tf_P + tf_U)
 
     return specialty
@@ -108,7 +108,7 @@ def select_features_by_positive_degree(tsm_positive, tsm_unlabeled, (threshold_p
     selected_terms = {}
 
     rowidx = 0
-    logging.debug("Calculate PDword. %d samples, %d terms in tsm_positive" % (total_samples, total_terms))
+    logging.debug(Logger.debug("Calculate PDword. %d samples, %d terms in tsm_positive" % (total_samples, total_terms)))
     for term_id in tsm_positive.term_matrix():
         term_info = tsm_positive.get_term_row(term_id)
 
@@ -117,7 +117,7 @@ def select_features_by_positive_degree(tsm_positive, tsm_unlabeled, (threshold_p
             selected_terms[term_id] = (pd_word, specialty, popularity)
 
         if rowidx % 1000 == 0:
-            logging.debug("feature_selection() %d/%d - pd_word:%.6f specialty:%.6f popularity:%.6f" % (rowidx, total_terms, specialty + popularity, specialty, popularity))
+            logging.debug(Logger.debug("feature_selection() %d/%d - pd_word:%.6f specialty:%.6f popularity:%.6f" % (rowidx, total_terms, specialty + popularity, specialty, popularity)))
         rowidx += 1
 
     return selected_terms

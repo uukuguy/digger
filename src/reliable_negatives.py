@@ -6,6 +6,7 @@ reliable_negatives.py - 可信负例样本抽取算法
 
 from __future__ import division
 import logging
+from logger import Logger
 import gmpy2
 from sklearn.cluster import KMeans
 from utils import sorted_dict, sorted_dict_by_values, crossvalidation_list_by_ratio
@@ -210,7 +211,7 @@ class BayesianClassifier():
         FP0 = FN0 = 0
         predict_result = {}
         while True:
-            logging.debug("-- %d -- Predicting ..." % (n))
+            logging.debug(Logger.debug("-- %d -- Predicting ..." % (n)))
             sc = clf.predict(tsm_test)
             #print sc
             TP, TN, FP, FN = report_em_result(tsm_test, sc)
@@ -230,7 +231,7 @@ class BayesianClassifier():
                 break
             predict_result = new_predict_result
 
-            logging.debug("-- %d -- Building new NB-C ..." % (n))
+            logging.debug(Logger.debug("-- %d -- Building new NB-C ..." % (n)))
             clf.fit(tsm_train)
 
             sample_categories = {k:sc[k] for k in sc}
@@ -273,12 +274,12 @@ class ReliableNegatives():
         positive_samples_list = tsm_train.get_samples_list()
         tsm_train.merge(tsm_test, renewid = False)
 
-        logging.debug("ReliableNegatives.I_EM() tsm_train (positive:%d, mixed:%d) has %d samples." % (tsm_P.get_total_samples(), tsm_M.get_total_samples(), tsm_train.get_total_samples()))
+        logging.debug(Logger.debug("ReliableNegatives.I_EM() tsm_train (positive:%d, mixed:%d) has %d samples." % (tsm_P.get_total_samples(), tsm_M.get_total_samples(), tsm_train.get_total_samples())))
 
         # Build initial Naive Bayesian Classifier NB-C
-        logging.debug("Building init NB-C ...")
+        logging.debug(Logger.debug("Building init NB-C ..."))
         clf = BayesianClassifier()
-        logging.debug("init_sample_is_category_probs() Positive: %d Negative: %d ..." % (len(positive_samples_list), len(negative_samples_list)))
+        logging.debug(Logger.debug("init_sample_is_category_probs() Positive: %d Negative: %d ..." % (len(positive_samples_list), len(negative_samples_list))))
         clf.init_sample_is_category_probs(positive_samples_list, negative_samples_list)
         clf.fit(tsm_train)
 
@@ -304,7 +305,7 @@ class ReliableNegatives():
         tsm_MS = tsm_unlabeled.clone(M)
         tsm_S = tsm_positive.clone(S)
         tsm_MS.merge(tsm_S, renewid = False)
-        logging.debug("tsm_MS(Unlabeled(%d) + Spy(%d)) total samples: %d" % (tsm_unlabeled.get_total_samples(), tsm_S.get_total_samples(), tsm_MS.get_total_samples()))
+        logging.debug(Logger.debug("tsm_MS(Unlabeled(%d) + Spy(%d)) total samples: %d" % (tsm_unlabeled.get_total_samples(), tsm_S.get_total_samples(), tsm_MS.get_total_samples())))
         #for sample_id in tsm_MS.sm_matrix:
             #tsm_MS.set_sample_category(sample_id, -1)
 
@@ -325,7 +326,7 @@ class ReliableNegatives():
         Pr_spy = {}
         for sample_id in S:
             if not sample_id in sample_categories:
-                logging.warn("Spy sample %d not in sample_categories." % (sample_id))
+                logging.warn(Logger.warn("Spy sample %d not in sample_categories." % (sample_id)))
                 continue
             spy_category, prob, x_probs = sample_categories[sample_id]
             Pr_spy[sample_id] = x_probs[1]
@@ -343,7 +344,7 @@ class ReliableNegatives():
 
             idx += 1
 
-        logging.debug("Spy sample id: %d spy_threshold: %s (spy_idx=%d)" % (sample_id, str(t), spy_idx))
+        logging.debug(Logger.debug("Spy sample id: %d spy_threshold: %s (spy_idx=%d)" % (sample_id, str(t), spy_idx)))
 
         # -------- Reliable Negative Samples --------
         for sample_id in M:
@@ -376,11 +377,11 @@ class ReliableNegatives():
         tsm_train.merge(tsm_unlabeled, renewid = False)
 
         clf = BayesianClassifier()
-        logging.debug("init_sample_is_category_probs() Positive: %d Negative: %d ..." % (len(PS), len(NS)))
+        logging.debug(Logger.debug("init_sample_is_category_probs() Positive: %d Negative: %d ..." % (len(PS), len(NS))))
         clf.init_sample_is_category_probs(PS, NS)
         clf.fit(tsm_train)
 
-        logging.debug("-- %d -- Building the final classifier using P, N, U ..." % (n))
+        logging.debug(Logger.debug("-- %d -- Building the final classifier using P, N, U ..." % (n)))
         sample_categories = clf.EM(tsm_train, tsm_unlabeled)
 
         return sample_categories
@@ -394,7 +395,7 @@ def calculate_representative_prototype(tsm, NS, US):
     X, y = sfm_negative.to_sklearn_data(include_null_samples = False)
     t = 30
     m = int(t * len(NS) / (len(NS) +len(US)))
-    logging.debug("Clustering NS into %d micro-clusters." % (m))
+    logging.debug(Logger.debug("Clustering NS into %d micro-clusters." % (m)))
     est = KMeans(n_clusters = m)
     est.fit(X)
     labels = est.labels_
@@ -473,7 +474,7 @@ def make_train_test_set(tsm_P, tsm_U, PS, NS, US, positive_category_id):
             tsm_unlabeled.set_sample_category(sample_id, -1)
             u0 += 1
     tsm_unlabeled.init_categories([1, -1])
-    logging.debug("tsm_unlabeled: P: %d U: %d P+U: %d" % (p0, u0, p0 + u0))
+    logging.debug(Logger.debug("tsm_unlabeled: P: %d U: %d P+U: %d" % (p0, u0, p0 + u0)))
 
 
     # -------- reliable negative --------
@@ -493,25 +494,25 @@ def make_train_test_set(tsm_P, tsm_U, PS, NS, US, positive_category_id):
     #tsm_other = tsm_unlabeled.clone(L_other)
     tsm_other = tsm_diffns
     selected_terms = do_feature_selection(tsm_positive, tsm_other)
-    logging.debug("After do_feature_selection() selected %d terms." % (len(selected_terms)))
+    logging.debug(Logger.debug("After do_feature_selection() selected %d terms." % (len(selected_terms))))
     #selected_terms = None
 
     # -------- tsm_train --------
     tsm_train = tsm_positive.clone(terms_list = selected_terms)
-    logging.debug("tsm_train cloned.")
+    logging.debug(Logger.debug("tsm_train cloned."))
     if selected_terms is None:
         selected_terms = tsm_train.get_terms_list()
-        logging.debug("selected_terms is None. use tsm_train %d terms" % (len(selected_terms)))
+        logging.debug(Logger.debug("selected_terms is None. use tsm_train %d terms" % (len(selected_terms))))
     else:
-        logging.debug("%d selected terms" % (len(selected_terms)))
+        logging.debug(Logger.debug("%d selected terms" % (len(selected_terms))))
     tsm_diffns = tsm_diffns.clone(terms_list = selected_terms)
-    logging.debug("tsm_diffns cloned.")
+    logging.debug(Logger.debug("tsm_diffns cloned."))
     tsm_train.merge(tsm_diffns, renewid = False)
-    logging.debug("tsm_train merged tsm_diffns. %d samples %d terms" % (tsm_train.get_total_samples(), tsm_train.get_total_terms()))
+    logging.debug(Logger.debug("tsm_train merged tsm_diffns. %d samples %d terms" % (tsm_train.get_total_samples(), tsm_train.get_total_terms())))
 
     # -------- tsm_test --------
     tsm_test = tsm_unlabeled.clone(terms_list = selected_terms)
-    logging.debug("tsm_test cloned using %d selected terms. %d samples %d terms" % (len(selected_terms), tsm_test.get_total_samples(), tsm_test.get_total_terms()))
+    logging.debug(Logger.debug("tsm_test cloned using %d selected terms. %d samples %d terms" % (len(selected_terms), tsm_test.get_total_samples(), tsm_test.get_total_terms())))
 
     return tsm_train, tsm_test
 
@@ -522,13 +523,13 @@ def rocsvm(tsm_train, tsm_test):
     #fw_type = FeatureWeight.TFRF
 
     # -------- sfm_train --------
-    logging.debug("rocsvm() transform tsm_train(%d samples %d terms) ..." % (tsm_train.get_total_samples(),  tsm_train.get_total_terms()))
+    logging.debug(Logger.debug("rocsvm() transform tsm_train(%d samples %d terms) ..." % (tsm_train.get_total_samples(),  tsm_train.get_total_terms())))
 
     sfm_train = SampleFeatureMatrix()
     sfm_train = FeatureWeight.transform(tsm_train, sfm_train, fw_type)
 
     # -------- sfm_test --------
-    logging.debug("rocsvm() transform tsm_test(%d samples %d terms) ..." % (tsm_test.get_total_samples(),  tsm_test.get_total_terms()))
+    logging.debug(Logger.debug("rocsvm() transform tsm_test(%d samples %d terms) ..." % (tsm_test.get_total_samples(),  tsm_test.get_total_terms())))
 
     sfm_test = SampleFeatureMatrix(category_id_map = sfm_train.get_category_id_map(), feature_id_map = sfm_train.get_feature_id_map())
     sfm_test.init_cagegories([1, -1])
@@ -537,10 +538,10 @@ def rocsvm(tsm_train, tsm_test):
 
     include_null_samples = True
     # -------- train & predict --------
-    logging.debug("rocsvm() to_sklearn_data sfm_train(%d samples %d features %d categories) ..." % (sfm_train.get_num_samples(), sfm_train.get_num_features(), sfm_train.get_num_categories()))
+    logging.debug(Logger.debug("rocsvm() to_sklearn_data sfm_train(%d samples %d features %d categories) ..." % (sfm_train.get_num_samples(), sfm_train.get_num_features(), sfm_train.get_num_categories())))
     X_train, y_train = sfm_train.to_sklearn_data(include_null_samples = include_null_samples)
 
-    logging.debug("rocsvm() to_sklearn_data sfm_test(%d samples %d features %d categories) ..." % (sfm_test.get_num_samples(), sfm_test.get_num_features(), sfm_test.get_num_categories()))
+    logging.debug(Logger.debug("rocsvm() to_sklearn_data sfm_test(%d samples %d features %d categories) ..." % (sfm_test.get_num_samples(), sfm_test.get_num_features(), sfm_test.get_num_categories())))
     X_test, y_test = sfm_test.to_sklearn_data(include_null_samples = include_null_samples)
 
     clf = Classifier()
@@ -595,7 +596,7 @@ def rn_sem(positive_category_id, tsm_positive, tsm_unlabeled, result_dir):
             common_NS = list(set(common_NS).intersection(set(NS)))
             diff_NS = list(set(NS).difference(set(common_NS)))
             US = US + diff_NS
-            logging.debug("======== %d common NS (P:%d, U:%d) ========" % (n, len(common_NS), len(US)))
+            logging.debug(Logger.debug("======== %d common NS (P:%d, U:%d) ========" % (n, len(common_NS), len(US))))
             TP0, TN0, FP0, FN0 = report_sem_result(tsm_positive, tsm_unlabeled, common_NS, US, positive_category_id)
             best_log0.append((FP0, FN0, UP0, UN0))
 
@@ -661,7 +662,7 @@ def report_sem_result(tsm_positive, tsm_unlabeled, NS, US, positive_category_id)
         category_id = tsm_unlabeled.get_sample_category(sample_id)
         category_1_id = Categories.get_category_1_id(category_id)
         if category_id is None:
-            logging.warn("category_id is None in NS. sample_id: %d positive_category_id: %d" % (sample_id, positive_category_id))
+            logging.warn(Logger.warn("category_id is None in NS. sample_id: %d positive_category_id: %d" % (sample_id, positive_category_id)))
         if category_1_id != positive_category_id:
             TN += 1
         else:
@@ -672,7 +673,7 @@ def report_sem_result(tsm_positive, tsm_unlabeled, NS, US, positive_category_id)
     for sample_id in US:
         category_id = tsm_unlabeled.get_sample_category(sample_id)
         if category_id is None:
-            logging.warn("category_id is None in US. sample_id: %d positive_category_id: %d" % (sample_id, positive_category_id))
+            logging.warn(Logger.warn("category_id is None in US. sample_id: %d positive_category_id: %d" % (sample_id, positive_category_id)))
         category_1_id = Categories.get_category_1_id(category_id)
         if category_1_id == positive_category_id:
             FP += 1
@@ -764,7 +765,7 @@ def report_em_result(tsm_test, sample_categories):
                 FN += 1
             else:
                 TN += 1
-        #logging.debug("sample_id: %d positive_category_id: %d category_id: %d likely_category: %d TP %d FP %d TN %d FN %d" % (sample_id, positive_category_id, category_id, likely_category_id, TP, FP, TN, FN))
+        #logging.debug(Logger.debug("sample_id: %d positive_category_id: %d category_id: %d likely_category: %d TP %d FP %d TN %d FN %d" % (sample_id, positive_category_id, category_id, likely_category_id, TP, FP, TN, FN)))
 
     show_confusion_matrix(TP, TN, FP, FN)
 

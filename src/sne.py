@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
+
+import os
 from collections import OrderedDict
 #from bokeh.sampledata.iris import flowers
 from bokeh.plotting import *
@@ -8,12 +10,22 @@ import pandas
 from pandas import DataFrame
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
+import logging
+from logger import Logger
 
 from sample_feature_matrix import SampleFeatureMatrix
 from category_feature_matrix import CategoryFeatureMatrix
 from categories import Categories
 
 def sne(samples, result_dir, include_null_samples):
+
+    if not os.path.isdir(result_dir):
+        try:
+            os.mkdir(result_dir)
+        except OSError:
+            logging.error(Logger.error("mkdir %s failed." % (result_dir)))
+            return
+
     csv_file = "%s/%s_sne.csv" % (result_dir, samples.name)
     html_file = "%s/%s.html" % (result_dir, samples.name)
     title = 'Negative Opinions'
@@ -24,11 +36,11 @@ def sne(samples, result_dir, include_null_samples):
     X, y = sfm.to_sklearn_data(include_null_samples)
     total_categories = sfm.get_num_categories()
 
-    logging.debug("Do TSNE...")
+    logging.debug(Logger.debug("Do TSNE..."))
     model = TSNE(n_components=2, random_state=0)
     X_sne = model.fit_transform(X)
 
-    logging.debug("Saving %s..." % (csv_file))
+    logging.debug(Logger.debug("Saving %s..." % (csv_file)))
     f = open(csv_file, "wb+")
     f.write("x,y,cat,t\n")
     rowidx = 0
@@ -44,7 +56,7 @@ def sne(samples, result_dir, include_null_samples):
         rowidx += 1
     f.close()
 
-    logging.info("SNE CSV file %s saved." % (csv_file))
+    logging.info(Logger.info("SNE CSV file %s saved." % (csv_file)))
     #plt_show(X_sne, y, total_categories)
     show_diagram(csv_file, html_file, title)
 

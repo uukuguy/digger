@@ -20,6 +20,7 @@ term_sample_model.py 词条-样本模型
 
 from __future__ import division
 import logging
+from logger import Logger
 import os
 from os import path
 import math
@@ -65,7 +66,6 @@ class TermSampleModel():
 
         self.categories = []
         self.targets = {}
-        self.sample_max_id = 0
 
     # ---------------- sample_matrix() ----------------
     def sample_matrix(self):
@@ -96,13 +96,13 @@ class TermSampleModel():
 
     # ---------------- open_db_tm() ----------------
     def open_db_tm(self):
-        logging.debug("open_db_tm() %s" % (self.tm_dir) )
+        logging.debug(Logger.debug("%s" % (self.tm_dir) ))
         db_tm = leveldb.LevelDB(self.tm_dir)
         return db_tm
 
     # ---------------- open_db_sm() ----------------
     def open_db_sm(self):
-        logging.debug("open_db_sm() %s" % (self.sm_dir) )
+        logging.debug(Logger.debug("%s" % (self.sm_dir) ))
         db_sm = leveldb.LevelDB(self.sm_dir)
         return db_sm
 
@@ -135,16 +135,12 @@ class TermSampleModel():
                 if not terms_set is None:
                     sample_info = self.select_sample_features(sample_info, terms_set)
                 tsm.sm_matrix[sample_id] = sample_info
-            tsm.sample_max_id = self.sample_max_id
         else:
-            tsm.sample_max_id = 0
             for sample_id in samples_list:
                 sample_info = self.sm_matrix[sample_id]
                 if not terms_set is None:
                     sample_info = self.select_sample_features(sample_info, terms_set)
                 tsm.sm_matrix[sample_id] = sample_info
-                if sample_id >= tsm.sample_max_id:
-                    tsm.sample_max_id = sample_id + 1
 
         tsm.targets = {k:self.targets[k] for k in self.targets}
         tsm.categories = [k for k in self.categories]
@@ -176,7 +172,7 @@ class TermSampleModel():
         if sample_id in self.sm_matrix:
             (category_old, sample_terms, term_map) = self.sm_matrix[sample_id]
             self.sm_matrix[sample_id] = (category_id, sample_terms, term_map)
-            #logging.debug("set_sample_category(%d, %d) old_category:%d" % (sample_id, category_id, category_old))
+            #logging.debug(Logger.debug("set_sample_category(%d, %d) old_category:%d" % (sample_id, category_id, category_old)))
 
     # ---------------- set_all_samples_category() ----------------
     def set_all_samples_category(self, category_id):
@@ -219,33 +215,26 @@ class TermSampleModel():
 
     # ---------------- merge() ----------------
     def merge(self, other_tsm, renewid = False):
-        logging.debug("Merge %d samples into %d samples." % (other_tsm.get_total_samples(), self.get_total_samples()))
+        logging.debug(Logger.debug("Merge %d samples into %d samples." % (other_tsm.get_total_samples(), self.get_total_samples())))
 
-        sample_max_id = self.sample_max_id
         rowidx = 0
         for sample_id in other_tsm.sm_matrix:
             sample_info = other_tsm.sm_matrix[sample_id]
 
-            if renewid:
-                new_sample_id = sample_id + sample_max_id
-            else:
-                new_sample_id = sample_id
+            new_sample_id = sample_id
             self.sm_matrix[new_sample_id] = sample_info
             #if rowidx % 1000 == 0:
-                #logging.debug("Merge sample matrix %d/%d" % (rowidx, len(other_tsm.sm_matrix)))
+                #logging.debug(Logger.debug("Merge sample matrix %d/%d" % (rowidx, len(other_tsm.sm_matrix))))
             rowidx += 1
 
-        logging.debug("Merge %d terms into %d terms." % (other_tsm.get_total_terms(), self.get_total_terms()))
+        logging.debug(Logger.debug("Merge %d terms into %d terms." % (other_tsm.get_total_terms(), self.get_total_terms())))
         rowidx = 0
         for term_id in other_tsm.tm_matrix:
             (_, (term_used, term_samples, sample_map)) = other_tsm.tm_matrix[term_id]
             new_sample_map = {}
             for sample_id in sample_map:
                 term_used_in_sample = sample_map[sample_id]
-                if renewid:
-                    new_sample_id = sample_id + sample_max_id
-                else:
-                    new_sample_id = sample_id
+                new_sample_id = sample_id
                 new_sample_map[new_sample_id] = term_used_in_sample
 
             term_used_0 = 0
@@ -256,7 +245,7 @@ class TermSampleModel():
             self.tm_matrix[term_id] = (term_id, (term_used + term_used_0, term_samples + term_samples_0, dict(sample_map_0, **new_sample_map)))
 
             #if rowidx % 1000 == 0:
-                #logging.debug("Merge term matrix %d/%d" % (rowidx, len(other_tsm.tm_matrix)))
+                #logging.debug(Logger.debug("Merge term matrix %d/%d" % (rowidx, len(other_tsm.tm_matrix))))
             rowidx += 1
 
         self.targets = dict(self.targets, **other_tsm.targets)
@@ -274,7 +263,7 @@ class TermSampleModel():
             batch_sm.Put(str(sample_id), msgpack.dumps(sample_info))
 
             if rowidx % 1000 == 0:
-                logging.debug("save_sample_matrix() rowidx: %d sample_id: %d" % (rowidx, sample_id))
+                logging.debug(Logger.debug("save_sample_matrix() rowidx: %d sample_id: %d" % (rowidx, sample_id)))
                 #print sample_info
 
             rowidx += 1
@@ -296,7 +285,7 @@ class TermSampleModel():
             batch_tm.Put(str(term_id), msgpack.dumps(term_info))
 
             if rowidx % 1000 == 0:
-                logging.debug("save_term_matrix() %d %d" % (rowidx, term_id))
+                logging.debug(Logger.debug("save_term_matrix() %d %d" % (rowidx, term_id)))
             rowidx += 1
 
         if path.isdir(self.tm_dir):
@@ -309,19 +298,19 @@ class TermSampleModel():
 
     # ---------------- save() ----------
     def save(self):
-        logging.debug("Save vocabulary ...")
+        logging.debug(Logger.debug("Save vocabulary ..."))
         self.vocabulary.save()
 
-        logging.debug("Save sample matrix ...")
+        logging.debug(Logger.debug("Save sample matrix ..."))
         self.save_sample_matrix(self.sm_matrix)
 
-        logging.debug("Save term matrix ...")
+        logging.debug(Logger.debug("Save term matrix ..."))
         self.save_term_matrix(self.tm_matrix)
 
 
     # ---------------- load_sample_matrix() ----------
     def load_sample_matrix(self, db_sm):
-        logging.debug("load_sample_matrix(). Start loading samples ...")
+        logging.debug(Logger.debug("Start loading samples ..."))
         sm_matrix = {}
         rowidx = 0
         for i in db_sm.RangeIter():
@@ -335,17 +324,17 @@ class TermSampleModel():
             sm_matrix[sample_id] = sample_info
 
             #if rowidx % 1000 == 0:
-                #logging.debug("load_sample_matrix() %d" % (rowidx))
+                #logging.debug(Logger.debug("load_sample_matrix() %d" % (rowidx)))
 
             rowidx += 1
 
-        logging.info("load_sample_matrix(). Loaded %d samples." % (len(sm_matrix)))
+        logging.info(Logger.info("Loaded %d samples." % (len(sm_matrix))))
 
         return sm_matrix
 
     # ---------------- load_term_matrix() ----------
     def load_term_matrix(self, db_tm):
-        logging.debug("load_term_matrix(). Start loading terms ...")
+        logging.debug(Logger.debug("Start loading terms ..."))
         tm_matrix = {}
         rowidx = 0
         for i in db_tm.RangeIter():
@@ -361,11 +350,11 @@ class TermSampleModel():
             #print tm_matrix[term_id]
 
             #if rowidx % 1000 == 0:
-                #logging.debug("load_term_matrix() %d" % (rowidx))
+                #logging.debug(Logger.debug("load_term_matrix() %d" % (rowidx)))
 
             rowidx += 1
 
-        logging.info("load_term_matrix(). Loaded %d terms" % (len(tm_matrix)))
+        logging.info(Logger.info("Loaded %d terms" % (len(tm_matrix))))
         return tm_matrix
 
     # ---------------- load() ----------
@@ -417,17 +406,15 @@ class TermSampleModel():
             sample_terms, term_map = self.vocabulary.seg_content(title + content)
 
             if sample_terms == 1 or sample_terms == 0:
-                logging.warn("!!!!!!!!!! [%d] sample_terms == %d" % (rowidx, sample_terms))
+                logging.warn(Logger.warn("!!!!!!!!!! [%d] sample_terms == %d" % (rowidx, sample_terms)))
 
             #if len(cat1) > 0:
                 #category = categories.create_or_get_category_id(cat1, cat2, cat3)
 
             sm_matrix[sample_id] = (category, sample_terms, term_map)
-            if sample_id >= self.sample_max_id:
-                self.sample_max_id = sample_id + 1
 
             if rowidx % 100 == 0:
-                logging.debug("rebuild_sample_matrix() %d %d %d %s %s" % (rowidx, sample_id, category, date, title))
+                logging.debug(Logger.debug("rebuild_sample_matrix() %d %d %d %s %s" % (rowidx, sample_id, category, date, title)))
             rowidx += 1
 
         return sm_matrix
@@ -459,7 +446,7 @@ class TermSampleModel():
                 tm_matrix[term_id] = (term_id, (term_used, term_samples + 1, sample_map))
 
             #if rowidx % 1000 == 0:
-                #logging.debug("rebuild_sample_matrix() %d/%d" % (rowidx, len(tm_matrix)))
+                #logging.debug(Logger.debug("rebuild_sample_matrix() %d/%d" % (rowidx, len(tm_matrix))))
             rowidx += 1
 
         self.total_terms_used = total_terms_used
@@ -471,24 +458,24 @@ class TermSampleModel():
     # ---------------- rebuild() ----------
     def rebuild(self, db_content, do_save = True):
 
-        logging.debug("Rebuild sample matrix...")
+        logging.debug(Logger.debug("Rebuild sample matrix..."))
         self.sm_matrix = self.rebuild_sample_matrix(db_content)
 
         if do_save:
-            logging.debug("Save vocabulary ...")
+            logging.debug(Logger.debug("Save vocabulary ..."))
             self.vocabulary.save()
 
-        logging.debug("Save sample matrix ...")
+        logging.debug(Logger.debug("Save sample matrix ..."))
         self.save_sample_matrix(self.sm_matrix)
 
-        logging.debug("Calculate term matrix...")
+        logging.debug(Logger.debug("Calculate term matrix..."))
         self.rebuild_term_matrix()
 
         if do_save:
-            logging.debug("Save term matrix ...")
+            logging.debug(Logger.debug("Save term matrix ..."))
             self.save_term_matrix(self.tm_matrix)
 
-        logging.debug("Rebuild TermSampleModel Done!")
+        logging.debug(Logger.debug("Rebuild TermSampleModel Done!"))
 
         self.rebuild_categories()
 
@@ -564,7 +551,7 @@ class TermSampleModel():
                 if category_1_id == category_positive:
                     is_positive = True
 
-            #logging.debug("category_id:%d category_positive:%d is_positive:%d" % (category_id, category_positive, is_positive) )
+            #logging.debug(Logger.debug("category_id:%d category_positive:%d is_positive:%d" % (category_id, category_positive, is_positive) ))
             if is_positive:
                 positive_samples_list.append(sample_id)
             else:
@@ -584,7 +571,7 @@ class TermSampleModel():
             (category_id, sample_terms, term_map) = self.sm_matrix[sample_id]
 
             #if category_id == 2054000:
-                #logging.debug("category_id:%d category_positive:%d " % (category_id, category_positive) )
+                #logging.debug(Logger.debug("category_id:%d category_positive:%d " % (category_id, category_positive) ))
 
             category_1_id = Categories.get_category_1_id(category_id)
             if category_1_id != category_1:
@@ -594,7 +581,7 @@ class TermSampleModel():
             if category_id == category_positive:
                 is_positive = True
 
-            #logging.debug("category_id:%d category_positive:%d is_positive:%d" % (category_id, category_positive, is_positive) )
+            #logging.debug(Logger.debug("category_id:%d category_positive:%d is_positive:%d" % (category_id, category_positive, is_positive) ))
 
             if is_positive:
                 positive_samples_list.append(sample_id)
@@ -608,7 +595,7 @@ class TermSampleModel():
         selected_positive_samples = []
 
         positive_samples_list, unlabeled_samples_list = self.get_samples_list_by_category_1(category_1_id)
-        logging.debug("One category - Positive:%d Unlabeled:%d" % (len(positive_samples_list), len(unlabeled_samples_list)))
+        logging.debug(Logger.debug("One category - Positive:%d Unlabeled:%d" % (len(positive_samples_list), len(unlabeled_samples_list))))
         if positive_ratio < 1.0:
             n_pure_P = int(len(positive_samples_list) * positive_ratio)
         else:
@@ -639,7 +626,7 @@ class TermSampleModel():
                         idx = random.randint(0, len(positive_samples_list) - 1)
                     else:
                         idx = 0
-                    #logging.debug("len(positive_samples_list): %d idx: %d" % (len(positive_samples_list), idx))
+                    #logging.debug(Logger.debug("len(positive_samples_list): %d idx: %d" % (len(positive_samples_list), idx)))
                     selected_negative_samples.append(positive_samples_list[idx])
                     del positive_samples_list[idx]
                     n += 1
@@ -647,7 +634,7 @@ class TermSampleModel():
 
         total_P = len(selected_positive_samples)
         total_U = len(unlabeled_samples_list)
-        logging.debug("CrossValidation - positive ratio: %.3f negative ratio: %.3f P:%d U:%d P_in_U: %d U_in_U: %d" % (positive_ratio, negative_ratio, total_P, total_U, n_P_in_U, total_U - n_P_in_U))
+        logging.debug(Logger.debug("CrossValidation - positive ratio: %.3f negative ratio: %.3f P:%d U:%d P_in_U: %d U_in_U: %d" % (positive_ratio, negative_ratio, total_P, total_U, n_P_in_U, total_U - n_P_in_U)))
         return selected_positive_samples, unlabeled_samples_list
 
 

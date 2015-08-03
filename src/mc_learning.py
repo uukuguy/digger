@@ -8,6 +8,7 @@ mc_learning.py Multi categories learning.
 
 from __future__ import division
 import logging
+from logger import Logger
 import os
 
 from utils import sorted_dict
@@ -29,7 +30,7 @@ def multicategories_train(samples_train, model_name = None, result_dir = None):
             try:
                 os.mkdir(result_dir)
             except OSError:
-                logging.error("mkdir %s failed." % (result_dir))
+                logging.error(Logger.error("mkdir %s failed." % (result_dir)))
                 return
         cfm_file = "%s/%s.cfm" % (result_dir, model_name)
         sfm_file = "%s/%s.sfm" % (result_dir, model_name)
@@ -42,7 +43,7 @@ def multicategories_train(samples_train, model_name = None, result_dir = None):
 # ---------------- multicategories_predict() ----------------
 def multicategories_predict(samples_test, model_name, result_dir):
     if model_name is None or len(model_name) == 0:
-        logging.warn("model_name must not be NULL.")
+        logging.warn(Logger.warn("model_name must not be NULL."))
         return
 
     if result_dir is None:
@@ -53,19 +54,19 @@ def multicategories_predict(samples_test, model_name, result_dir):
             try:
                 os.mkdir(result_dir)
             except OSError:
-                logging.error("mkdir %s failed." % (result_dir))
+                logging.error(Logger.error("mkdir %s failed." % (result_dir)))
                 return
         cfm_file = "%s/%s.cfm" % (result_dir, model_name)
         sfm_file = "%s/%s.sfm" % (result_dir, model_name)
 
-    logging.debug("Loading train sample feature matrix ...")
+    logging.debug(Logger.error("Loading train sample feature matrix ..."))
     sfm_train = SampleFeatureMatrix()
     sfm_train.load(sfm_file)
-    logging.debug("Loading train category feature matrix ...")
+    logging.debug(Logger.debug("Loading train category feature matrix ..."))
     cfm_train = CategoryFeatureMatrix()
     cfm_train.load(cfm_file)
 
-    logging.debug("Making sample feature matrix for test data ...")
+    logging.debug(Logger.debug("Making sample feature matrix for test data ..."))
     category_id = 2000000
     sfm_test = SampleFeatureMatrix(sfm_train.get_category_id_map(), sfm_train.get_feature_id_map())
 
@@ -82,18 +83,18 @@ def multicategories_predict(samples_test, model_name, result_dir):
                 feature_weight = features[feature_id]
                 sfm_test.add_sample_feature(sample_id, feature_id, feature_weight)
 
-    logging.debug("train sample feature matrix - features:%d categories:%d" % (sfm_train.get_num_features(), sfm_train.get_num_categories()))
+    logging.debug(Logger.debug("train sample feature matrix - features:%d categories:%d" % (sfm_train.get_num_features(), sfm_train.get_num_categories())))
     X_train, y_train = sfm_train.to_sklearn_data()
 
-    logging.debug("test sample feature matrix - features:%d categories:%d" % (sfm_test.get_num_features(), sfm_test.get_num_categories()))
+    logging.debug(Logger.debug("test sample feature matrix - features:%d categories:%d" % (sfm_test.get_num_features(), sfm_test.get_num_categories())))
     X_test, y_test = sfm_test.to_sklearn_data()
 
     clf = Classifier()
 
-    logging.debug("Classifier training ...")
+    logging.debug(Logger.debug("Classifier training ..."))
     clf.train(X_train, y_train)
 
-    logging.debug("Classifier predicting ...")
+    logging.debug(Logger.debug("Classifier predicting ..."))
 
     categories = samples_test.get_categories()
 

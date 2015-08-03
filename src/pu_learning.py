@@ -8,6 +8,7 @@ pu_learning.py Positive and Unlabeled Learner.
 
 from __future__ import division
 import logging
+from logger import Logger
 from datetime import datetime
 
 from corpus import *
@@ -125,7 +126,7 @@ def build_samples_from_xls_file(corpus, samples_name, xls_file):
 
 
 def import_test_data(corpus_dir):
-    logging.debug("Building corpus %s ..." % (corpus_dir))
+    logging.debug(Logger.debug("Building corpus %s ..." % (corpus_dir)))
     corpus = Corpus(corpus_dir)
 
     build_samples_from_xls_file(corpus, "po2014_neg_1Q", "./data/po2014_neg_1Q.xls")
@@ -150,13 +151,13 @@ def rebuild_test_data(corpus_dir):
     corpus = Corpus(corpus_dir)
     samples_list = corpus.get_samples_list()
     for samples_name in samples_list:
-        logging.debug("Rebuild samples %s ..." % (samples_name))
+        logging.debug(Logger.debug("Rebuild samples %s ..." % (samples_name)))
         samples = Samples(corpus, samples_name)
         samples.rebuild()
         samples = None
 
 def test_corpus(corpus_dir, positive_name, unlabeled_name, model_file, svm_file):
-    logging.debug("Building corpus %s ..." % (corpus_dir))
+    logging.debug(Logger.debug("Building corpus %s ..." % (corpus_dir)))
     corpus = Corpus(corpus_dir)
 
     #corpus.export_svm_file("2014_neg_1Q", "po2014_neg_1Q.svm")
@@ -188,5 +189,5 @@ if __name__ == '__main__':
 
     e_time = datetime.utcnow()
     t_time = (e_time - s_time)
-    logging.info("Done.(%s)" % (str(t_time)))
+    logging.info(Logger.info("Done.(%s)" % (str(t_time))))
 

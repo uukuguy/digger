@@ -7,6 +7,7 @@ import os
 from os import path
 from bidict import bidict
 import logging
+from logger import Logger
 import leveldb
 import jieba
 from utils import is_chinese_word
@@ -110,7 +111,7 @@ class Vocabulary:
             if row_id[0:2] == "__":
                 continue
             term_id = int(row_id)
-            #logging.debug("%s" % (str(i[1].__class__)))
+            #logging.debug(Logger.debug("%s" % (str(i[1].__class__))))
             term_text = i[1].decode('utf-8')
 
             #self.terms.setdefault(term_text, term_id)
@@ -118,7 +119,7 @@ class Vocabulary:
             self.terms_by_text[term_text] = term_id
 
             if rowidx % 10000 == 0:
-                logging.debug("%d %d:%s" % (rowidx, term_id, term_text))
+                logging.debug(Logger.debug("%d %d:%s" % (rowidx, term_id, term_text)))
             rowidx += 1
 
         self.db = None

@@ -6,6 +6,7 @@ feature_weighting.py 特征权值算法
 '''
 from __future__ import division
 import logging
+from logger import Logger
 import math
 from term_sample_model import TermSampleModel
 from sample_feature_matrix import SampleFeatureMatrix
@@ -18,7 +19,7 @@ class FeatureWeight():
     @staticmethod
     def transform(tsm, sfm, fw_type, feature_weights = None):
 
-        logging.debug("FeatureWeight.transform() tsm: %d samples %d terms." % (tsm.get_total_samples(), tsm.get_total_terms()))
+        logging.debug(Logger.debug("FeatureWeight.transform() tsm: %d samples %d terms." % (tsm.get_total_samples(), tsm.get_total_terms())))
 
         if sfm is None:
             sfm = SampleFeatureMatrix()
@@ -34,7 +35,7 @@ class FeatureWeight():
         num_samples = sfm.get_num_samples()
         num_features = sfm.get_num_features()
         num_categories = sfm.get_num_categories()
-        logging.debug("FeatureWeight.transform(). sfm: %d samples %d terms %d categories." % (num_samples, num_features, num_categories))
+        logging.debug(Logger.debug("FeatureWeight.transform(). sfm: %d samples %d terms %d categories." % (num_samples, num_features, num_categories)))
 
         return sfm
 
@@ -51,7 +52,7 @@ class FeatureWeight():
         #num_samples = sfm.get_num_samples()
         #num_features = sfm.get_num_features()
         #num_categories = sfm.get_num_categories()
-        #logging.debug("Before transform_tfidf() sfm: %d samples %d terms %d categories." % (num_samples, num_features, num_categories))
+        #logging.debug(Logger.debug("Before transform_tfidf() sfm: %d samples %d terms %d categories." % (num_samples, num_features, num_categories)))
 
         #if feature_weights is None:
         if True:

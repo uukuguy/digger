@@ -4,11 +4,12 @@
 from __future__ import division
 import random
 import logging
+from logger import Logger
 import math
 
 logging.basicConfig(
         level = logging.DEBUG,
-        format = "[%(asctime)s] %(name)s:%(levelname)s: %(message)s"
+        format = "[%(asctime)s %(relativeCreated)d] %(filename)s(%(lineno)d) %(module)s.%(funcName)s() %(name)s:%(levelname)s: %(message)s"
         )
 
 def is_chinese_word(u0):
@@ -95,7 +96,7 @@ def save_as_svm_file(f, X, y):
                 f.write("%d:%d " % (key, value))
         file_out.write("\n")
         if idx % 1000 == 0:
-            logging.debug("Save svm: %d/%d" % (idx, len(X)))
+            logging.debug(Logger.debug("Save svm: %d/%d" % (idx, len(X))))
         idx += 1
 
     file_out.close()
