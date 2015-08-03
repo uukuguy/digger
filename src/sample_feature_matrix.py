@@ -164,10 +164,6 @@ class SampleFeatureMatrix():
 
             num_samples += 1
 
-        #print data
-        #print indices
-        #print indptr
-
         if num_features != self.get_num_features():
             logging.warn(Logger.warn("SampleFeatureMatrix.to_sklearn_data() %d samples have no feature." % (self.get_num_features() - num_features)))
 

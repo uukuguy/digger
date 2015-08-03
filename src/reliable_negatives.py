@@ -109,8 +109,6 @@ class BayesianClassifier():
                 sample_prob_sum += sample_prob
             category_probs[category_id] = sample_prob_sum
 
-        #print "self.Pr_f_in_c"
-        #print sorted_dict(self.Pr_f_in_c)
 
         max_prob = gmpy2.mpfr(0.0)
         category_sum = {}
@@ -118,8 +116,6 @@ class BayesianClassifier():
             x = self.Pr_f_in_c[term_id]
             for category_id in x:
                 c_prob = x[category_id]
-                #if c_prob > 0.001:
-                    #print term_id, category_id, c_prob
                 if c_prob > max_prob:
                     max_prob = c_prob
                 if category_id in category_sum:
@@ -127,17 +123,16 @@ class BayesianClassifier():
                 else:
                     category_sum[category_id] = c_prob
         for category_id in category_sum:
-            print "category_sum: %d %.6f" % (category_id, category_sum[category_id])
+            logging.debug(Logger.debug("category_sum: %d %.6f" % (category_id, category_sum[category_id])))
 
-        print "max_prob: %.6f" % (max_prob)
+        logging.debug(Logger.debug("max_prob: %.6f" % (max_prob)))
 
         total_samples = tsm.get_total_samples()
         for category_id in category_probs:
             sample_prob_sum = category_probs[category_id]
             self.set_c_prob(category_id, sample_prob_sum / total_samples)
 
-        print "self.Pr_c:"
-        print sorted_dict(self.Pr_c)
+        #print sorted_dict(self.Pr_c)
 
 
     # ---------------- update_feature_and_category_prob() ----------
@@ -184,7 +179,6 @@ class BayesianClassifier():
             max_prob = gmpy2.mpfr(0.0)
             likely_category = None
             idx = 0
-            #print sample_id, x_probs
             for category_id in x_probs:
                 prob = x_probs[category_id]
                 if idx == 0:
@@ -198,7 +192,7 @@ class BayesianClassifier():
             if not likely_category is None:
                 sample_categories[sample_id] = (likely_category, max_prob, x_probs)
 
-            #print "result() - sample_id: %d positive: %.6f negative: %.6f likely_category: %d" % (sample_id, x_probs[1], x_probs[-1], likely_category)
+            #logging.debug(Logger.debug("result() - sample_id: %d positive: %.6f negative: %.6f likely_category: %d" % (sample_id, x_probs[1], x_probs[-1], likely_category)))
 
         return sample_categories
 
@@ -213,7 +207,6 @@ class BayesianClassifier():
         while True:
             logging.debug(Logger.debug("-- %d -- Predicting ..." % (n)))
             sc = clf.predict(tsm_test)
-            #print sc
             TP, TN, FP, FN = report_em_result(tsm_test, sc)
 
             if FP == 0:
@@ -340,7 +333,7 @@ class ReliableNegatives():
         idx = 0
         for (sample_id, spy_prob) in Pr_spy_list:
             spy_category, prob, x_probs = sample_categories[sample_id]
-            print idx, sample_id, spy_category, prob, x_probs
+            #print idx, sample_id, spy_category, prob, x_probs
 
             idx += 1
 
@@ -350,7 +343,7 @@ class ReliableNegatives():
         for sample_id in M:
             category_id, prob, x_probs = sample_categories[sample_id]
             prob = x_probs[1]
-            #print "sample_id: %d category_id: %d prob: %.3f t: %.3f" % (sample_id, category_id, prob, t)
+            #logging.debug(Logger.debug("sample_id: %d category_id: %d prob: %.3f t: %.3f" % (sample_id, category_id, prob, t)))
             if prob < t:
                 NS.append(sample_id)
             else:
@@ -399,17 +392,17 @@ def calculate_representative_prototype(tsm, NS, US):
     est = KMeans(n_clusters = m)
     est.fit(X)
     labels = est.labels_
-    print type(labels), len(labels)
+    #print type(labels), len(labels)
     kk = {}
     for n in labels:
         if n in kk:
             kk[n] += 1
         else:
             kk[n] = 1
-    print kk
+    #print kk
     for k in kk:
         if kk[k] > 5:
-            print "----- cluster %d (%d)" % (k, kk[k])
+            #print "----- cluster %d (%d)" % (k, kk[k])
             n = 0
             idx = 0
             for l in labels:
@@ -418,7 +411,7 @@ def calculate_representative_prototype(tsm, NS, US):
                 if l == k:
                     sample_id = NS[idx]
                     category_id = tsm.get_sample_category(sample_id)
-                    print k, sample_id, category_id
+                    #print k, sample_id, category_id
                     n += 1
                 idx += 1
 
@@ -442,7 +435,7 @@ def do_feature_selection(tsm_positive, tsm_other):
     idx = 0
     for (term_id, (pd_word, specialty, popularity)) in terms_positive_degree_list:
         term_text = tsm_positive.vocabulary.get_term_text(term_id)
-        print "[%d] %d %s %.6f(%.6f,%.6f)" % (idx, term_id, term_text.encode('utf-8'), pd_word, specialty, popularity)
+        logging.debug(Logger.debug("[%d] %d %s %.6f(%.6f,%.6f)" % (idx, term_id, term_text.encode('utf-8'), pd_word, specialty, popularity)))
         if idx >= 30:
             break
         idx += 1
@@ -604,26 +597,26 @@ def rn_sem(positive_category_id, tsm_positive, tsm_unlabeled, result_dir):
         US_best = [i for i in US]
         n += 1
 
-    print " \t| TP\t| TN\t| accu\t| FP\t| FN\t|"
+    logging.info(Logger.notice(" \t| TP\t| TN\t| accu\t| FP\t| FN\t|"))
     idx = 0
     for (TP, TN, FP, FN) in best_log:
         if TN + TP > 0.0:
             accu = TN / (TN + FP)
         else:
             accu = 0.0
-        print "%d\t| %d\t| %d\t| %.3f\t| %d\t| %d\t|" % (idx, TP, TN, accu, FP, FN)
+        logging.info(Logger.notice("%d\t| %d\t| %d\t| %.3f\t| %d\t| %d\t|" % (idx, TP, TN, accu, FP, FN)))
         idx += 1
-    print
-    print " \t| FP0\t| FN0\t| accu\t| UP0\t| UN0\t|"
+    logging.info(Logger.notice(""))
+    logging.info(Logger.notice(" \t| FP0\t| FN0\t| accu\t| UP0\t| UN0\t|"))
     idx = 0
     for (TP, TN, FP, FN) in best_log0:
         if TN + TP > 0.0:
             accu = TN / (TN + TP)
         else:
             accu = 0.0
-        print "%d\t| %d\t| %d\t| %.3f\t| %d\t| %d\t|" % (idx, TP, TN, accu, FP, FN)
+        logging.info(Logger.notice("%d\t| %d\t| %d\t| %.3f\t| %d\t| %d\t|" % (idx, TP, TN, accu, FP, FN)))
         idx += 1
-    print
+    logging.info(Logger.notice(""))
 
     PS = tsm_positive.get_samples_list()
 
@@ -680,30 +673,29 @@ def report_sem_result(tsm_positive, tsm_unlabeled, NS, US, positive_category_id)
         else:
             FN += 1
 
-    print "Total Reliable Negatives: %d" % (TP + TN)
-    print "TP: %d TN: %d" % (TP, TN)
+    logging.info(Logger.notice("Total Reliable Negatives: %d" % (TP + TN)))
+    logging.info(Logger.notice("TP: %d TN: %d" % (TP, TN)))
     if TN + TP > 0:
         accuracy = TN / (TN + TP)
     else:
         accuracy = 0.0
-    print "Accuracy: %.3f" % (accuracy)
-    print
-    print "Total Unlabeled: %d" % (FP + FN)
-    print "FP: %d FN: %d" % (FP, FN)
-    print
+    logging.info(Logger.notice("Accuracy: %.3f" % (accuracy)))
+    logging.info(Logger.notice(""))
+    logging.info(Logger.notice("Total Unlabeled: %d" % (FP + FN)))
+    logging.info(Logger.notice("FP: %d FN: %d" % (FP, FN)))
+    logging.info(Logger.notice(""))
 
     return TP, TN, FP, FN
 
 
 def show_confusion_matrix(TP, TN, FP, FN):
-    print "\t| True\t| False\t|"
-    print "Positive| %d\t| %d\t| %d" % (TP, FP, TP + FP)
-    print "Negative| %d\t| %d\t| %d" % (TN, FN, TN + FN)
-    print "\t| %d\t| %d\t|" % (TP + TN, FP + FN)
-    print
+    logging.info(Logger.notice("\t| True\t| False\t|"))
+    logging.info(Logger.notice("Positive| %d\t| %d\t| %d" % (TP, FP, TP + FP)))
+    logging.info(Logger.notice("Negative| %d\t| %d\t| %d" % (TN, FN, TN + FN)))
+    logging.info(Logger.notice("\t| %d\t| %d\t|" % (TP + TN, FP + FN)))
+    logging.info(Logger.notice(""))
 
-    #print "- Positive -"
-    print "         \t precision \t recall \t F-score \t support"
+    logging.info(Logger.notice("         \t precision \t recall \t F-score \t support"))
     if TP + TN != 0.0:
         positive_accuracy = TP / (TP + TN)
     else:
@@ -716,12 +708,8 @@ def show_confusion_matrix(TP, TN, FP, FN):
         positive_F = 2 * positive_accuracy * positive_recall / (positive_accuracy + positive_recall)
     else:
         positive_F = 0.0
-    print "  Positive\t %.3f%% \t %.3f%% \t %.3f%% \t %d" % (positive_accuracy * 100, positive_recall * 100, positive_F * 100, TP + FP)
-    #print "Accuracy: %.3f%%" % (positive_accuracy * 100)
-    #print "Recall: %.3f%%" % (positive_recall * 100)
-    #print
+    logging.info(Logger.notice("  Positive\t %.3f%% \t %.3f%% \t %.3f%% \t %d" % (positive_accuracy * 100, positive_recall * 100, positive_F * 100, TP + FP)))
 
-    #print "- Negative -"
     if FN + FP != 0.0:
         negative_accuracy = FN / (FN + FP)
     else:
@@ -734,11 +722,9 @@ def show_confusion_matrix(TP, TN, FP, FN):
         negative_F = 2 * negative_accuracy * negative_recall / (negative_accuracy + negative_recall)
     else:
         negative_F = 0.0
-    print "  Negative\t %.3f%% \t %.3f%% \t %.3f%% \t %d" % (negative_accuracy * 100, negative_recall * 100, negative_F * 100, TN + FN)
-    print
-    #print "Accuracy: %.3f%%" % (negative_accuracy * 100)
-    #print "Recall: %.3f%%" % (negative_recall * 100)
-    #print
+    logging.info(Logger.notice("  Negative\t %.3f%% \t %.3f%% \t %.3f%% \t %d" % (negative_accuracy * 100, negative_recall * 100, negative_F * 100, TN + FN)))
+    logging.info(Logger.notice(""))
+
 
 # ---------------- report_em_result() ----------------
 def report_em_result(tsm_test, sample_categories):
@@ -751,7 +737,6 @@ def report_em_result(tsm_test, sample_categories):
         (likely_category_id, prob, x_probs) = sample_categories[sample_id]
 
         category_id = tsm_test.get_sample_category(sample_id)
-        #print category_id, likely_category_id
         if category_id is None:
             continue
 

@@ -60,14 +60,14 @@ class FeatureWeight():
             for sample_id in sm_matrix:
                 (category, sample_terms, term_map) = sm_matrix[sample_id]
                 #if category == 1:
-                    #print "sample_id: %d category: %d" % (sample_id, category)
+                    #logging.debug(Logger.debug("sample_id: %d category: %d" % (sample_id, category)))
 
                 sfm.set_sample_category(sample_id, category)
                 colidx = 0
                 for term_id in term_map:
                     if not feature_weights is None:
                         if not term_id in feature_weights:
-                            #print "sample %d term %d not in feature_weights." % (sample_id, term_id)
+                            #logging.debug(Logger.debug("sample %d term %d not in feature_weights." % (sample_id, term_id)))
                             colidx += 1
                             continue
                     term_used = term_map[term_id]
@@ -76,7 +76,7 @@ class FeatureWeight():
                     idf = math.log(total_samples/term_samples)
                     tfidf = tf * idf
                     sfm.add_sample_feature(sample_id, term_id, tfidf)
-                    #print "sample_id: %d term_id: %d tf: %.6f idf: %.6f tfidf: %.6f" % (sample_id, term_id, tf, idf, tfidf)
+                    #logging.debug(Logger.debug("sample_id: %d term_id: %d tf: %.6f idf: %.6f tfidf: %.6f" % (sample_id, term_id, tf, idf, tfidf)))
                     colidx += 1
 
                 rowidx += 1

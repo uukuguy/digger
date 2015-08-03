@@ -81,7 +81,7 @@ def plt_show(data, targets, total_categories):
     "#444444", "#a6cee3", "#1f78b4", "#b2df8a", "#33a02c", "#fb9a99",
     "#e31a1c", "#fdbf6f", "#ff7f00", "#cab2d6", "#6a3d9a"]
 
-    print color_map
+    #print color_map
     x = [ r[0] for r in data]
     y = [ r[1] for r in data]
     c = [ color_map[t] for t in targets]
@@ -106,21 +106,21 @@ def show_diagram(csv_file, html_file, title):
     values = df.groupby("cat")
     pdict = OrderedDict()
     for cat in values.groups:
-        print cat
+        #print cat
         labels = values.get_group(cat).columns
-        print labels
+        #print labels
         xname = labels[0]
         yname = labels[1]
         colorname = labels[4]
-        print xname, yname
+        #print xname, yname
         x = getattr(values.get_group(cat), xname)
         y = getattr(values.get_group(cat), yname)
         item_color = getattr(values.get_group(cat), colorname)
         pdict[cat] = zip(x,y)
-        print type(pdict[cat])
+        #print type(pdict[cat])
         #print pdict[cat]
         for (x,y) in pdict[cat]:
-            print x, y
+            #print x, y
             p.circle(x, y, legend=cat, color=item_color, fill_alpha = 0.2, size=5)
             break
             ##p.scatter(x, y, radius=20, color=item_color, legend=cat, fill_alpha=0.2)

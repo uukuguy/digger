@@ -310,7 +310,7 @@ class TermSampleModel():
 
     # ---------------- load_sample_matrix() ----------
     def load_sample_matrix(self, db_sm):
-        logging.debug(Logger.debug("Start loading samples ..."))
+        logging.info(Logger.info("Start loading samples ..."))
         sm_matrix = {}
         rowidx = 0
         for i in db_sm.RangeIter():
@@ -334,7 +334,7 @@ class TermSampleModel():
 
     # ---------------- load_term_matrix() ----------
     def load_term_matrix(self, db_tm):
-        logging.debug(Logger.debug("Start loading terms ..."))
+        logging.info(Logger.info("Start loading terms ..."))
         tm_matrix = {}
         rowidx = 0
         for i in db_tm.RangeIter():
@@ -650,7 +650,7 @@ class TermSampleModel():
             #category_id = categories.categories_1[category_name]
             #positive_samples_list, unlabeled_samples_list = tsm.get_samples_list_by_category_1(category_id)
 
-            #print "\n%s(%d) Positive Samples: %d Unlabeled Samples: %d" % (category_name, category_id, len(positive_samples_list), len(unlabeled_samples_list))
+            #logging.debug(Logger.debug("\n%s(%d) Positive Samples: %d Unlabeled Samples: %d" % (category_name, category_id, len(positive_samples_list), len(unlabeled_samples_list))))
 
             #terms_positive_degree = get_terms_positive_degree_by_category(tsm, positive_samples_list, unlabeled_samples_list)
             #features = {}

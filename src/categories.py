@@ -147,7 +147,7 @@ class Categories():
 
     # ---------------- print_categories() ----------------
     def print_categories(self):
-        print "--------------- categories -----------------"
+        logging.info(Logger.notice("--------------- categories -----------------"))
         categories_dict = {}
         for k in self.categories_1:
             v = self.categories_1[k]
@@ -161,7 +161,7 @@ class Categories():
 
         categories_list = sorted_dict(categories_dict)
         for (category_id, category_name) in categories_list:
-            print "%s - %d" % (category_name, category_id)
+            logging.info(Logger.notice("%s - %d" % (category_name, category_id)))
 
     # ---------------- get_category_id() ----------------
     def get_category_id(self, cat1, cat2 = None, cat3 = None):

@@ -71,7 +71,6 @@ def save_samples_positive_degree(samples, samples_positive_degree):
 
         (sample_id_1, category_1, date_1, title, key, url, _) = samples.get_sample_meta(sample_id)
 
-        #print key.__class__
         f.write("[%d] %d %s %d %.6f %s\n" % (rowidx, sample_id, key.encode('utf-8'), category_1, V, title.encode('utf-8')))
         f1.write("[%d] %d %s %d %.6f %s\n" % (rowidx, sample_id, key.encode('utf-8'), category_1, V, title.encode('utf-8')))
 
