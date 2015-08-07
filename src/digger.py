@@ -28,7 +28,7 @@ Usage:
 Options:
   -h --help     Show this screen.
   --version     Show version.
-  --corpus_dir=<corpus_dir>  Corpus root dir [default: po2013.corpus].
+  --corpus_dir=<corpus_dir>  Corpus root dir .
   --result_dir=<rd>  Result output dir [default: ./result].
   --positive_name=<pn>  Name of the positive samples [default: 2014_neg_1Q].
   --unlabeled_name=<un>  Name of the unlabeled samples [default: po201405].
@@ -52,6 +52,7 @@ Options:
 from datetime import datetime
 from logger import Logger
 import logging
+from os import path
 from docopt import docopt
 from globals import *
 from corpus import Corpus, Samples
@@ -296,9 +297,69 @@ def do_sne(corpus_dir, samples_name, result_dir):
 
     sne(samples, result_dir, include_null_samples = False)
 
+
+from ConfigParser import ConfigParser
+
+class AppArgs():
+    def __init__(self):
+        self.corpus_dir = None
+        self.samples_name = None
+
+        self.result_dir = None
+        self.positive_name = None
+        self.unlabeled_name = None
+        self.model_file = None
+        self.svm_file = None
+        self.xls_file = None
+        self.model_name = None
+        self.sample_id = None
+
+    def parse_from_file(self, file_name):
+        if not path.isfile(file_name):
+            return
+        logging.info(Logger.notice('AppArgs parse %s' % (path.abspath(file_name))))
+
+        conf = ConfigParser()
+        conf.read(file_name)
+        if conf.has_option('workspace', 'corpus_dir'):
+            self.corpus_dir = conf.get('workspace', 'corpus_dir')
+        if conf.has_option('workspace', 'samples_name'):
+            self.samples_name = conf.get('workspace', 'samples_name')
+
+    def parse_from_args(self, args):
+        corpus_dir = args['--corpus_dir']
+        if not corpus_dir is None:
+            self.corpus_dir = corpus_dir
+        samples_name = args['--samples_name']
+        if not samples_name is None:
+            self.samples_name = samples_name
+
+    def write_to_file(self, file_name):
+        writed = False
+        conf = ConfigParser()
+        conf.add_section('workspace')
+        if not self.corpus_dir is None:
+            conf.set('workspace', 'corpus_dir', self.corpus_dir)
+            writed = True
+        if not self.samples_name is None:
+            conf.set('workspace', 'samples_name', self.samples_name)
+            writed = True
+        if writed:
+            logging.info(Logger.notice('AppArgs write %s' % (file_name)))
+
+    def print_status(self):
+        logging.info(Logger.notice("Corpus Dir: %s" % (self.corpus_dir)))
+        logging.info(Logger.notice("Samples Name: %s" % (self.samples_name)))
+
+
 # ---------------- main() ----------------
 def main():
     s_time = datetime.utcnow()
+
+    aa = AppArgs()
+    aa.parse_from_file('/etc/diggerd/diggerrc')
+    aa.parse_from_file('~/.diggerrc')
+    aa.parse_from_file('./.diggerrc')
 
     args = docopt(__doc__, version="Positive and Unlabeled Extractor 1.0")
     #print args
@@ -313,13 +374,19 @@ def main():
     samples_name = args['--samples_name']
     model_name = args['--model_name']
     arg_sample_id = args['--sample_id']
-
     if not arg_sample_id is None:
         sample_id = int(arg_sample_id)
     else:
         sample_id = None
-
     xls_file = args['--xls_file']
+
+    aa.parse_from_args(args)
+    corpus_dir = aa.corpus_dir
+    samples_name = aa.samples_name
+
+    aa.print_status()
+
+
     if args['test']:
         do_test(corpus_dir, positive_name, unlabeled_name, model_file, svm_file)
     elif args['import_samples']:
