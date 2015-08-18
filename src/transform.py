@@ -9,7 +9,8 @@ import logging
 from logger import Logger
 import msgpack
 import xlwt
-from utils import load_excel_to_rows
+from datetime import datetime
+from utils import load_excel_to_rows, xldate_to_datetime
 from categories import Categories
 from protocal import decode_sample_meta
 
@@ -35,13 +36,16 @@ def import_samples_from_xls(samples, categories, xls_file):
         if u"TITLE" in row:
             title = row[u"TITLE"]
 
-        date = ""
+        date = datetime.now()
         if u"DATE" in row:
             row_date = row[u"DATE"]
-            if row_date.__class__ is str:
-                date = row_date.decode('utf-8')
+            if row_date.__class__ is unicode:
+                #date = row_date.decode('utf-8')
+                y, m, d = row_date.split('.')
+                date = datetime(int(y), int(m), int(d))
             else:
-                date = str(row_date).decode('utf-8')
+                date = xldate_to_datetime(row_date)
+                #date = str(row_date).decode('utf-8')
 
         key = ""
         if u"KEY" in row:
@@ -70,7 +74,7 @@ def import_samples_from_xls(samples, categories, xls_file):
 
         category_id = categories.create_or_get_category_id(cat1, cat2, cat3)
 
-        sample_data = (sample_id, category_id, date, title, key, url, msgext)
+        sample_data = (sample_id, category_id, (date.year, date.month, date.day, date.hour, date.minute, date.second), title, key, url, msgext)
         rowstr = msgpack.dumps(sample_data)
         batch_content.Put(str(sample_id), rowstr)
 
@@ -95,6 +99,8 @@ def export_samples_to_xls(samples, xls_file):
     ws.write(0, 6, 'URL')
     ws.write(0, 7, 'CONTENT')
 
+    style_date = xlwt.XFStyle()
+    style_date.num_format_str = 'YYYY.MM.DD'
     rowidx = 0
     for i in samples.db_content.RangeIter():
         row_id = i[0]
@@ -107,7 +113,10 @@ def export_samples_to_xls(samples, xls_file):
         if len(content) >= 1024 * 32:
             content = content[:1024*32 - 1]
         ws.write(rowidx + 1, 0, category)
-        ws.write(rowidx + 1, 1, date)
+
+        (y, m, d, h, mi, s) = date
+        ws.write(rowidx + 1, 1, datetime(y, m, d, h, mi, s), style_date)
+
         ws.write(rowidx + 1, 2, cat1)
         ws.write(rowidx + 1, 3, cat2)
         ws.write(rowidx + 1, 4, title)

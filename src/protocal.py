@@ -22,4 +22,4 @@ def decode_sample_meta(str_sample_meta):
         content = content.decode('utf-8')
     msgext = (version.decode('utf-8'), content, (cat1.decode('utf-8'), cat2.decode('utf-8'), cat3.decode('utf-8')))
 
-    return (sample_id, category, date.decode('utf-8'), title.decode('utf-8'), key.decode('utf-8'), url.decode('utf-8'), msgext)
+    return (sample_id, category, date, title.decode('utf-8'), key.decode('utf-8'), url.decode('utf-8'), msgext)

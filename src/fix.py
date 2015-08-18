@@ -6,6 +6,7 @@ fix.py
 
 import leveldb
 import logging
+import requests
 from logger import Logger
 from corpus import Corpus, Samples
 from protocal import decode_sample_meta
@@ -200,7 +201,7 @@ class Fix():
                 sample_data = (sample_id, category, date, title, key, url, msgext)
                 rowstr = msgpack.dumps(sample_data)
                 db_content.Put(str(sample_id), rowstr)
-                logging.warn(Logger.debug("Connection failed. sample_id: %d url: %s" % (sample_id, url)))
+                logging.warn(Logger.warn("Connection failed. sample_id: %d url: %s" % (sample_id, url)))
 
 
 

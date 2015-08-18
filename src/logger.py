@@ -5,7 +5,12 @@
 logger.py
 '''
 
-#import logging
+import logging
+
+logging.basicConfig(
+        level = logging.DEBUG,
+        format = "[%(asctime)s %(relativeCreated)d] %(filename)s(%(lineno)d) %(module)s.%(funcName)s() %(name)s:%(levelname)s: %(message)s"
+        )
 
 class Logger():
     def __init__(self):
@@ -34,4 +39,14 @@ class Logger():
     @staticmethod
     def error(msg):
         return "\033[1;31m%s\033[0m" % msg
+
+from datetime import datetime
+class AppWatch():
+    def __init__(self):
+        self.s_time = datetime.utcnow()
+
+    def stop(self):
+        e_time = datetime.utcnow()
+        t_time = (e_time - self.s_time)
+        logging.info(Logger.notice("Done.(%s)" % (str(t_time))))
 

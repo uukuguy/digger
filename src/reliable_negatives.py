@@ -756,3 +756,73 @@ def report_em_result(tsm_test, sample_categories):
 
     return TP, TN, FP, FN
 
+
+
+from corpus import Corpus, Samples
+from vocabulary import Vocabulary
+# ---------------- test_iem() ----------------
+def test_iem(corpus_dir, positive_name, unlabeled_name, result_dir):
+    corpus = Corpus(corpus_dir)
+    corpus.vocabulary.load()
+    samples_positive = Samples(corpus, positive_name)
+    samples_positive.load()
+    #samples_unlabeled = Samples(corpus, unlabeled_name)
+    #samples_unlabeled.load()
+
+    logging.debug(Logger.debug("I-EM ..."))
+
+    positive_category_id = 4000000
+    positive_ratio = 0.8
+    tsm = samples_positive.tsm
+    positive_samples_list, unlabeled_samples_list = tsm.crossvalidation_by_category_1(positive_category_id, positive_ratio, random = False)
+
+    tsm_positive = tsm.clone(positive_samples_list)
+    tsm_unlabeled = tsm.clone(unlabeled_samples_list)
+
+    rn_iem(positive_category_id, tsm_positive, tsm_unlabeled, result_dir)
+
+# ---------------- test_sem() ----------------
+def test_sem(corpus_dir, positive_name, unlabeled_name, result_dir):
+    corpus = Corpus(corpus_dir)
+    corpus.vocabulary.load()
+    samples_positive = Samples(corpus, positive_name)
+    samples_positive.load()
+    #samples_unlabeled = Samples(corpus, unlabeled_name)
+    #samples_unlabeled.load()
+
+    logger.debug(Logger.debug("S-EM ..."))
+
+    #positive_category_id = 1000000 # 供电服务
+    #positive_category_id = 2000000 # 人资管理
+    positive_category_id = 6000000 # 安全生产
+    #positive_category_id = 6000000 # 党建作风
+    #positive_category_id = 8000000 # 依法治企
+    positive_ratio = 0.4
+    negative_ratio = 0.66 # ratio of remaing samples. (1 - positive_ratio) * negative_ratio
+    tsm = samples_positive.tsm
+    #for sample_id in tsm.sample_matrix():
+        #category_id = tsm.get_sample_category(sample_id)
+        #print sample_id, category_id
+
+    positive_samples_list, unlabeled_samples_list = tsm.crossvalidation_by_category_1(positive_category_id, positive_ratio, negative_ratio, positive_random = False, negative_random = False)
+
+    tsm_positive = tsm.clone(positive_samples_list)
+    tsm_unlabeled = tsm.clone(unlabeled_samples_list)
+
+    #print positive_samples_list
+    #print unlabeled_samples_list
+
+    total_positive_samples = tsm_positive.get_total_samples()
+    total_unlabeled_samples = tsm_unlabeled.get_total_samples()
+    logging.debug(Logger.debug("do_sem() %d samples in tsm_positive, %d samples in tsm_unlabeled." % (total_positive_samples, total_unlabeled_samples)))
+    #for sample_id in tsm_unlabeled.sample_matrix():
+        #category_id = tsm_unlabeled.get_sample_category(sample_id)
+        #print sample_id, category_id
+
+    rn_sem(positive_category_id, tsm_positive, tsm_unlabeled, result_dir)
+def test():
+    pass
+
+if __name__=='__main__':
+    test()
+

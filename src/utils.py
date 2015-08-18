@@ -4,13 +4,10 @@
 from __future__ import division
 import random
 import logging
+from os import path
 from logger import Logger
 import math
-
-logging.basicConfig(
-        level = logging.DEBUG,
-        format = "[%(asctime)s %(relativeCreated)d] %(filename)s(%(lineno)d) %(module)s.%(funcName)s() %(name)s:%(levelname)s: %(message)s"
-        )
+from datetime import datetime
 
 def is_chinese_word(u0):
     return u0 >= u'\u4e00' and u0 <= u'\u9fa5'
@@ -39,6 +36,11 @@ def open_excel(file):
         print str(e)
 
 
+# ---------------- xldate_to_datetime() ----------------
+def xldate_to_datetime(value):
+    (y, m, d, h, mi, s) = xlrd.xldate.xldate_as_tuple(value, 1)
+    return datetime(y, m, d, h, mi, s)
+
 # ---------------- load_excel_to_rows() ----------------
 def load_excel_to_rows(xls_file, sheet_idx = 0, colname_idx = 0):
     rows = []
@@ -61,8 +63,6 @@ def load_excel_to_rows(xls_file, sheet_idx = 0, colname_idx = 0):
                     row[colnames[i]] = values[i]
                 row[u"ID"] = rownum
                 rows.append(row)
-
-
 
     random_rows = []
     while len(rows) > 0:
@@ -119,5 +119,103 @@ def crossvalidation_list_by_ratio(X, ratio):
         del X2[idx]
 
     return X1, X2
+
+
+import leveldb, msgpack
+
+# ---------------- save_objlist() ----------------
+def save_objlist(self, db_path, objlist):
+    db = leveldb.LevelDB(db_path)
+    wb = db.WriteBatch()
+    n = 0
+    for obj in self.objlist:
+        wb.Put(str(n), msgpack.dumps(obj.dumps()))
+        n += 1
+    db.Write(wb, sync=True)
+    db = None
+
+
+# ---------------- load_objlist() ----------------
+def load_objlist(self, db_path, objlist, Obj):
+    objlist.clear()
+
+    db = leveldb.LevelDB(db_path)
+    for i in db.RangeIter():
+        row_id = i[0]
+        if row_id[0:2] == "__":
+            continue
+        obj = Obj.loads(i[i])
+        objlist.append(obj)
+    db = None
+
+
+from ConfigParser import ConfigParser
+
+class AppArgs():
+    def __init__(self, conf_files = None):
+
+        # {section:{option:value}}
+        self.args_map = {}
+
+        if not conf_files is None:
+            for conf_file in conf_files:
+                self.parse_from_file(conf_file)
+
+
+    def parse_from_file(self, file_name):
+        if not path.isfile(file_name):
+            return
+        logging.info(Logger.notice('AppArgs parse %s' % (path.abspath(file_name))))
+
+        conf = ConfigParser()
+        conf.read(file_name)
+        for section in conf.sections():
+            for (option, value) in conf.items(section):
+                self.set_arg(option, option, value)
+
+    def get_arg(self, section, option):
+        if section in self.args_map:
+            options = self.args_map[section]
+            if option in options:
+                return options[option]
+        return None
+
+    def set_arg(self, section, option, value):
+        if section in self.args_map:
+            options = self.args_map[section]
+        else:
+            options = {}
+        options[option] = value
+        self.args_map[section] = options
+
+    def update_arg(self, option, value, section='global'):
+        if not value is None:
+            self.set_arg(section, option, value)
+
+    def write_to_file(self, file_name):
+        writed = False
+        conf = ConfigParser()
+
+        for section in self.args_map:
+            conf.add_section(section)
+            options = self.args_map[section]
+            for option in options:
+                value = options[option]
+                conf.set(section, option, value)
+
+        fp = open(file_name, 'wb+')
+        conf.write(fp)
+        fp.close()
+
+        logging.info(Logger.notice('AppArgs write %s' % (file_name)))
+
+
+    def print_args(self):
+        for section in self.args_map:
+            logging.info(Logger.notice("Section: %s" % (section)))
+            options = self.args_map[section]
+            for option in options:
+                value = options[option]
+                logging.info(Logger.notice("Opinion %s:%s" % (option, value)))
 
 
