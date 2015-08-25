@@ -171,7 +171,7 @@ class AppArgs():
         conf.read(file_name)
         for section in conf.sections():
             for (option, value) in conf.items(section):
-                self.set_arg(option, option, value)
+                self.set_arg(section, option, value)
 
     def get_arg(self, section, option):
         if section in self.args_map:

@@ -145,6 +145,7 @@ class Vocabulary:
     # ---------------- add_text_jieba() ----------------
     def add_text_jieba(self, content):
         term_map = {}
+        #jieba.enable_parallel(4)
         tokens = jieba.cut(content)
         for fet in tokens:
             u0 = fet[0]

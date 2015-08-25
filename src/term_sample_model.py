@@ -458,7 +458,7 @@ class TermSampleModel():
     # ---------------- rebuild() ----------
     def rebuild(self, db_content, do_save = True):
 
-        logging.debug(Logger.debug("Rebuild sample matrix..."))
+        logging.debug(Logger.debug("Rebuild sample matrix... %s" % (self.root_dir)))
         self.sm_matrix = self.rebuild_sample_matrix(db_content)
 
         if do_save:
@@ -475,7 +475,7 @@ class TermSampleModel():
             logging.debug(Logger.debug("Save term matrix ..."))
             self.save_term_matrix(self.tm_matrix)
 
-        logging.debug(Logger.debug("Rebuild TermSampleModel Done!"))
+        logging.debug(Logger.debug("Rebuild TermSampleModel Done! %s" % (self.root_dir)))
 
         self.rebuild_categories()
 
