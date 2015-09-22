@@ -10,11 +10,13 @@ import logging
 from logger import Logger
 import leveldb
 import jieba
+from pyltp import Segmentor
 from utils import is_chinese_word
 
 class SegmentMethod():
     JIEBA = 0
     NGRAM = 1
+    LTP = 2
 
 class Vocabulary:
 
@@ -30,6 +32,8 @@ class Vocabulary:
         #self.db = leveldb.LevelDB(self.root_dir)
         self.db = None
         #self.load()
+
+        self.segger = None
 
     # ---------------- clear() ----------------
     def clear(self):
@@ -139,6 +143,8 @@ class Vocabulary:
             return self.add_text_jieba(content)
         elif segment_method == SegmentMethod.NGRAM:
             return self.add_text_ngram(content)
+        elif segment_method == SegmentMethod.LTP:
+            return self.add_text_ltp(content)
         else:
             raise ValueError, ("Invalid SegmentMethod.")
 
@@ -181,5 +187,28 @@ class Vocabulary:
         return term_map
 
 
+    # ---------------- add_text_ltp() ----------------
+    def add_text_ltp(self, content):
+        term_map = {}
+
+        if self.segger is None:
+            self.segger = Segmentor()
+            self.segger.load('/home/jwsu/apps/ltp-3.3.0/ltp_data/cws.model')
+        tokens = self.segger.segment(content.encode('utf8'))
+        for fet in tokens:
+            u0 = fet.decode('utf8')
+            if not is_chinese_word(u0) :
+                continue
+            if len(fet) < 2:
+                continue
+
+            term_id = self.add_term(fet.decode('utf8'))
+
+            if term_id in term_map:
+                term_map[term_id] += 1
+            else:
+                term_map[term_id] = 1
+
+        return term_map
 
 

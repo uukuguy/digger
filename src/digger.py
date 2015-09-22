@@ -51,7 +51,7 @@ def do_show(corpus_dir, samples_name):
         return
 
     corpus = Corpus(corpus_dir)
-    #corpus.vocabulary.load()
+    corpus.vocabulary.load()
 
     samples = Samples(corpus, samples_name)
     samples.load()
@@ -228,6 +228,8 @@ def cmd_import_samples(aa):
 def cmd_rebuild(aa):
     corpus_dir = aa.get_arg('global', 'corpus_dir')
     samples_name = aa.get_arg('global', 'samples_name')
+    aa.print_args()
+    logging.debug(Logger.debug("corpus_dir: %s samples_name: %s" % (corpus_dir, samples_name)))
 
     do_rebuild(corpus_dir, samples_name)
 
