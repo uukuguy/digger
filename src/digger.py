@@ -58,28 +58,6 @@ def do_show(corpus_dir, samples_name):
 
     samples.show()
 
-# ---------------- do_test() ----------------
-def do_test(corpus_dir, positive_name, unlabeled_name, model_file, svm_file):
-    corpus = Corpus(corpus_dir)
-    #corpus.vocabulary.load()
-
-    samples_positive = Samples(corpus, positive_name)
-    samples_positive.load()
-    #samples_positive = None
-    #for positive_name in positive_name_list:
-        #samples = Samples(corpus, positive_name)
-        #samples.load()
-        #if samples_positive is None:
-            #samples_positive = samples
-        #else:
-            #samples_positive.merge(samples)
-            #samples = None
-
-    samples_unlabeled = Samples(corpus, unlabeled_name)
-    samples_unlabeled.load()
-
-    PULearning_test(samples_positive, samples_unlabeled)
-
 
 # ---------------- do_export_samples() ----------------
 def do_export_samples(corpus_dir, samples_name, xls_file):
@@ -111,8 +89,27 @@ from reliable_negatives import test_sem
 def do_sem(corpus_dir, positive_name, unlabeled_name, result_dir):
     test_sem(corpus_dir, positive_name, unlabeled_name, result_dir)
 
+# ---------------- do_sem() ----------------
+def do_pulearning(corpus_dir, positive_name, unlabeled_name, result_dir):
+    corpus = Corpus(corpus_dir)
+    #corpus.vocabulary.load()
 
+    samples_positive = Samples(corpus, positive_name)
+    samples_positive.load()
+    #samples_positive = None
+    #for positive_name in positive_name_list:
+        #samples = Samples(corpus, positive_name)
+        #samples.load()
+        #if samples_positive is None:
+            #samples_positive = samples
+        #else:
+            #samples_positive.merge(samples)
+            #samples = None
 
+    samples_unlabeled = Samples(corpus, unlabeled_name)
+    samples_unlabeled.load()
+
+    PULearning_test(samples_positive, samples_unlabeled)
 
 
 # ---------------- do_export_urls() ----------------
@@ -289,6 +286,17 @@ def cmd_sem(aa):
     do_sem(corpus_dir, positive_name, unlabeled_name, result_dir)
 
 
+# ---------------- cmd_pulearning() ----------------
+def cmd_pulearning(aa):
+    corpus_dir = aa.get_arg('global', 'corpus_dir')
+    result_dir = aa.get_arg('global', 'result_dir')
+
+    positive_name = aa.get_arg('PULearning', 'positive_name')
+    unlabeled_name = aa.get_arg('PULearning', 'unlabeled_name')
+
+    do_pulearning(corpus_dir, positive_name, unlabeled_name, result_dir)
+
+
 # ---------------- update_args() ----------------
 def update_args(aa, args):
     # global options
@@ -355,6 +363,12 @@ def main():
     parser_sem.add_argument('--positive_name', type=str, help='The positive samples\'s name in corpus.')
     parser_sem.add_argument('--unlabeled_name', type=str, help='The unlabeled samples\'s name in corpus.')
     parser_sem.set_defaults(func=cmd_sem)
+
+    # -------- pulearning --------
+    parser_pulearning = subparsers.add_parser('pulearning', help='PULearning help')
+    parser_pulearning.add_argument('--positive_name', type=str, help='The positive samples\'s name in corpus.')
+    parser_pulearning.add_argument('--unlabeled_name', type=str, help='The unlabeled samples\'s name in corpus.')
+    parser_pulearning.set_defaults(func=cmd_pulearning)
 
     args = parser.parse_args()
     print args
