@@ -5,7 +5,7 @@ category_feature_matrix.py - 分类特征矩阵
 
 CategoryFeatureMatrix.samples
     {category_id, ({feature_id:feature_weight})}
-    feature_weight: (pd_word, specialty, popularity)
+    feature_weight: (pd_word, speciality, popularity)
 
 '''
 

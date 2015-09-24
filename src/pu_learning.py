@@ -20,14 +20,14 @@ import positive_degree as pd
 
 def PULearning_test(samples_positive, samples_unlabeled):
 
-    threshold_pd_word = 1.0
-    threshold_specialty = 0.8
+    threshold_pd_word = 0.4
+    threshold_speciality = 0.8
     threshold_popularity = 0.01
 
     tsm_positive = samples_positive.tsm
     tsm_unlabeled = samples_unlabeled.tsm
 
-    terms_positive_degree = select_features_by_positive_degree(tsm_positive, tsm_unlabeled, (threshold_pd_word, threshold_specialty, threshold_popularity))
+    terms_positive_degree = select_features_by_positive_degree(tsm_positive, tsm_unlabeled, (threshold_pd_word, threshold_speciality, threshold_popularity))
 
     vocabulary = samples_positive.corpus.vocabulary
 
@@ -56,7 +56,7 @@ def export_train_svm_file(svm_file, terms_positive_degree, tm_positive, sample_V
             #f.write("%d:%d " % (term_id, 1))
             if not term_id in terms_positive_degree:
                 continue
-            (pd_word, specialty, popularity) = terms_positive_degree[term_id]
+            (pd_word, speciality, popularity) = terms_positive_degree[term_id]
             f.write("%d:%.6f " % (term_id, pd_word))
         f.write("\n")
 
@@ -78,7 +78,7 @@ def export_train_svm_file(svm_file, terms_positive_degree, tm_positive, sample_V
             #f.write("%d:%d " % (term_id, 1))
             if not term_id in terms_positive_degree:
                 continue
-            (pd_word, specialty, popularity) = terms_positive_degree[term_id]
+            (pd_word, speciality, popularity) = terms_positive_degree[term_id]
             f.write("%d:%.6f " % (term_id, PDword))
         f.write("\n")
 
@@ -110,7 +110,7 @@ def export_predict_svm_file(svm_file, terms_positive_degree, tm_positive, sample
             #f.write("%d:%d " % (term_id, 1))
             if not term_id in terms_positive_degree:
                 continue
-            (pd_word, specialty, popularity) = terms_positive_degree[term_id]
+            (pd_word, speciality, popularity) = terms_positive_degree[term_id]
             f.write("%d:%.6f " % (term_id, PDword))
         f.write("\n")
 

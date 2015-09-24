@@ -35,7 +35,8 @@ from threading import Lock
 from utils import *
 from vocabulary import Vocabulary, SegmentMethod
 from term_sample_model import TermSampleModel
-from feature_selection import calculate_term_positive_degree, get_terms_positive_degree_by_category
+from positive_degree import calculate_term_positive_degree
+from feature_selection import get_terms_positive_degree_by_category
 import positive_degree as pd
 from classifier import Classifier
 from sample_feature_matrix import SampleFeatureMatrix
@@ -268,7 +269,7 @@ class Samples():
             terms_positive_degree = get_terms_positive_degree_by_category(tsm, positive_samples_list, unlabeled_samples_list)
             features = {}
             for term_id in terms_positive_degree:
-                (pd_word, specialty, popularity) = terms_positive_degree[term_id]
+                (pd_word, speciality, popularity) = terms_positive_degree[term_id]
                 features[term_id] = pd_word
             cfm.set_features(category_id, features)
 
@@ -278,7 +279,7 @@ class Samples():
                 sfm.set_sample_category(sample_id, category_1_id)
                 for term_id in term_map:
                     if term_id in terms_positive_degree:
-                        (pd_word, specialty, popularity) = terms_positive_degree[term_id]
+                        (pd_word, speciality, popularity) = terms_positive_degree[term_id]
                         sfm.add_sample_feature(sample_id, term_id, pd_word)
                         no_terms = False
 
@@ -703,12 +704,12 @@ class Corpus():
             for term_id in term_map:
                 term_text = self.vocabulary.get_term_text(term_id)
                 term_used = term_map[term_id]
-                (pd_word, specialty, popularity) = calculate_term_positive_degree(term_id, samples_positive, samples_unlabeled, self.sensitive_terms)
-                terms[term_id] = (pd_word, specialty, popularity, term_used, term_text)
+                (pd_word, speciality, popularity) = calculate_term_positive_degree(term_id, samples_positive, samples_unlabeled, self.sensitive_terms)
+                terms[term_id] = (pd_word, speciality, popularity, term_used, term_text)
 
             terms_list = sorted_dict_by_values(terms, reverse = True)
-            for (term_id, (pd_word, specialty, popularity, term_used, term_text)) in terms_list:
-                print "%s\t%d\t[%.6f,%.6f,%.6f]\t(id:%d)" % (term_text, term_used, pd_word, specialty, popularity, term_id)
+            for (term_id, (pd_word, speciality, popularity, term_used, term_text)) in terms_list:
+                print "%s\t%d\t[%.6f,%.6f,%.6f]\t(id:%d)" % (term_text, term_used, pd_word, speciality, popularity, term_id)
 
         except KeyError:
             print "Sample %d not found in db_tm." % (sample_id)

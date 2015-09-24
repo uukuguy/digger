@@ -655,7 +655,7 @@ class TermSampleModel():
             #terms_positive_degree = get_terms_positive_degree_by_category(tsm, positive_samples_list, unlabeled_samples_list)
             #features = {}
             #for term_id in terms_positive_degree:
-                #(pd_word, specialty, popularity) = terms_positive_degree[term_id]
+                #(pd_word, speciality, popularity) = terms_positive_degree[term_id]
                 #features[term_id] = pd_word
             #cfm.set_features(category_id, features)
 
@@ -665,7 +665,7 @@ class TermSampleModel():
                 #sfm.set_sample_category(sample_id, category_1_id)
                 #for term_id in term_map:
                     #if term_id in terms_positive_degree:
-                        #(pd_word, specialty, popularity) = terms_positive_degree[term_id]
+                        #(pd_word, speciality, popularity) = terms_positive_degree[term_id]
                         #sfm.add_sample_feature(sample_id, term_id, pd_word)
 
         #return cfm, sfm

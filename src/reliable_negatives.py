@@ -426,16 +426,16 @@ def rn_iem(positive_category_id, tsm_positive, tsm_unlabeled, result_dir):
 # ---------------- do_feature_selection() ----------------
 def do_feature_selection(tsm_positive, tsm_other):
     threshold_pd_word = 1.0
-    threshold_specialty = 0.8
+    threshold_speciality = 0.8
     threshold_popularity = 0.3
-    terms_positive_degree = select_features_by_positive_degree(tsm_positive, tsm_other, (threshold_pd_word, threshold_specialty, threshold_popularity))
+    terms_positive_degree = select_features_by_positive_degree(tsm_positive, tsm_other, (threshold_pd_word, threshold_speciality, threshold_popularity))
     #print terms_positive_degree
 
     terms_positive_degree_list = sorted_dict_by_values(terms_positive_degree, reverse = True)
     idx = 0
-    for (term_id, (pd_word, specialty, popularity)) in terms_positive_degree_list:
+    for (term_id, (pd_word, speciality, popularity)) in terms_positive_degree_list:
         term_text = tsm_positive.vocabulary.get_term_text(term_id)
-        logging.debug(Logger.debug("[%d] %d %s %.6f(%.6f,%.6f)" % (idx, term_id, term_text.encode('utf-8'), pd_word, specialty, popularity)))
+        logging.debug(Logger.debug("[%d] %d %s %.6f(%.6f,%.6f)" % (idx, term_id, term_text.encode('utf-8'), pd_word, speciality, popularity)))
         if idx >= 30:
             break
         idx += 1
