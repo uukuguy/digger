@@ -10,8 +10,12 @@ import logging
 from logger import Logger
 import leveldb
 import jieba
+import jieba.posseg as pseg
 #from pyltp import Segmentor
 from utils import is_chinese_word
+#import hat_trie
+
+pos_list = ['n', 'v', 'ns', 'vn']
 
 class SegmentMethod():
     JIEBA = 0
@@ -25,6 +29,7 @@ class Vocabulary:
         #self.maxid = 0
         #self.terms = bidict()
         self.terms_by_text = {}
+        #self.terms_by_text = hat_trie.Trie()
         self.terms_by_id = {}
         self.root_dir = vocabulary_dir
 
@@ -152,14 +157,24 @@ class Vocabulary:
     def add_text_jieba(self, content):
         term_map = {}
         #jieba.enable_parallel(4)
-        tokens = jieba.cut(content)
-        for fet in tokens:
-            u0 = fet[0]
-            if not is_chinese_word(u0) :
+        #tokens = jieba.cut(content)
+        #for fet in tokens:
+        words = pseg.cut(content)
+        for w in words:
+            fet = w.word
+            pos = w.flag
+            #if not pos in pos_list:
+                #continue
+            if pos != 'n' and pos != 'v' and pos != 'vn':
                 continue
+
+            #u0 = fet[0]
+            #if not is_chinese_word(u0) :
+                #continue
             if len(fet) < 2:
                 continue
 
+            #print fet, pos
             term_id = self.add_term(fet)
 
             if term_id in term_map:

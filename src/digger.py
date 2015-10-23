@@ -148,6 +148,7 @@ def do_predict(corpus_dir, samples_name, model_name, result_dir):
 # ---------------- do_query_sample() ----------------
 def do_query_sample(corpus_dir, samples_name, sample_id):
     corpus = Corpus(corpus_dir)
+    corpus.vocabulary.load()
 
     samples = Samples(corpus, samples_name)
     samples.load()
@@ -155,19 +156,21 @@ def do_query_sample(corpus_dir, samples_name, sample_id):
 
 
 # ---------------- do_query_sample_by_pu() ----------------
-def do_query_sample_by_pu(corpus_dir, positive_name_list, unlabeled_name, sample_id):
+def do_query_sample_by_pu(corpus_dir, positive_name, unlabeled_name, sample_id):
     corpus = Corpus(corpus_dir)
 
-    samples_positive = None
-    for positive_name in positive_name_list:
-        samples = Samples(corpus, positive_name)
-        samples.load()
-        if samples_positive is None:
-            samples_positive = samples
-        else:
-            samples_positive.merge(samples)
-            samples = None
+    #samples_positive = None
+    #for positive_name in positive_name_list:
+        #samples = Samples(corpus, positive_name)
+        #samples.load()
+        #if samples_positive is None:
+            #samples_positive = samples
+        #else:
+            #samples_positive.merge(samples)
+            #samples = None
 
+    samples_positive = Samples(corpus, positive_name)
+    samples_positive.load()
     samples_unlabeled = Samples(corpus, unlabeled_name)
     samples_unlabeled.load()
 
@@ -240,6 +243,18 @@ def cmd_show(aa):
     samples_name = aa.get_arg('global', 'samples_name')
 
     do_show(corpus_dir, samples_name)
+
+
+# ---------------- cmd_query_sample() ----------------
+def cmd_query_sample(aa):
+    corpus_dir = aa.get_arg('global', 'corpus_dir')
+    samples_name = aa.get_arg('global', 'samples_name')
+    sample_id = aa.get_arg('query_sample', 'sample_id')
+    #do_query_sample(corpus_dir, samples_name, sample_id)
+
+    positive_name = aa.get_arg('PULearning', 'positive_name')
+    unlabeled_name = aa.get_arg('PULearning', 'unlabeled_name')
+    do_query_sample_by_pu(corpus_dir, positive_name, unlabeled_name, sample_id)
 
 
 # ---------------- cmd_test() ----------------
@@ -319,6 +334,10 @@ def update_args(aa, args):
     if hasattr(args, 'unlabeled_name'):
         aa.update_arg('unlabeled_name', args.unlabeled_name, section='PULearning')
 
+    # Query sample
+    if hasattr(args, 'sample_id'):
+        aa.update_arg('sample_id', args.sample_id, section='query_sample')
+
 # ---------------- main() ----------------
 def main():
     parser = argparse.ArgumentParser(description='Positive and Unlabeled Extractor 1.0')
@@ -340,6 +359,11 @@ def main():
     # -------- show --------
     parser_show = subparsers.add_parser('show', help='show help')
     parser_show.set_defaults(func=cmd_show)
+
+    # -------- query_sample --------
+    parser_query_sample = subparsers.add_parser('query_sample', help='query sample help')
+    parser_query_sample.add_argument('--sample_id', type=int, help='The sample id.')
+    parser_query_sample.set_defaults(func=cmd_query_sample)
 
     # -------- test --------
     parser_test = subparsers.add_parser('test', help='test help')

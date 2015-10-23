@@ -461,6 +461,8 @@ class TermSampleModel():
         logging.debug(Logger.debug("Rebuild sample matrix... %s" % (self.root_dir)))
         self.sm_matrix = self.rebuild_sample_matrix(db_content)
 
+        return
+
         if do_save:
             logging.debug(Logger.debug("Save vocabulary ..."))
             self.vocabulary.save()

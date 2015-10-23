@@ -427,31 +427,37 @@ class Samples():
             print "%s" % (content)
             sample_terms, term_map = self.corpus.vocabulary.seg_content(content)
             print "sample_terms: %d terms_count: %d" % (sample_terms, len(term_map))
-            for term_id in term_map:
+            #for term_id in term_map:
+            terms_list = sorted_dict_by_values(term_map, reverse=True)
+            for (term_id, term_used_in_sample) in terms_list:
+                if term_used_in_sample <= 1:
+                    continue
                 term_text = self.corpus.vocabulary.get_term_text(term_id)
-                sample_terms = term_map[term_id]
-                print "%s(%d): %d" % (term_text, term_id, sample_terms)
+                #sample_terms = term_map[term_id]
+                print "%s(%d): %d" % (term_text, term_id, term_used_in_sample)
 
         except KeyError:
             print "Sample %d not found in db_content." % (sample_id)
 
-        db_tm = self.tsm.open_db_tm()
+        db_sm = self.tsm.open_db_sm()
         try:
-            str_sample_info = db_tm.Get(str(sample_id))
+            str_sample_info = db_sm.Get(str(sample_id))
             (category, sample_terms, term_map) = msgpack.loads(str_sample_info)
             print ""
             print "---------------- keywords ----------------"
             print ""
             terms_list = sorted_dict_by_values(term_map, reverse = True)
             for (term_id, term_used_in_sample) in terms_list:
+                if term_used_in_sample <= 1:
+                    continue
                 term_text = self.corpus.vocabulary.get_term_text(term_id)
                 print "%s\t%d\t(id:%d)" % (term_text, term_used_in_sample, term_id)
 
         except KeyError:
-            print "Sample %d not found in db_tm." % (sample_id)
+            print "Sample %d not found in db_sm." % (sample_id)
 
         finally:
-            self.tsm.close_db(db_tm)
+            self.tsm.close_db(db_sm)
 
 
     # ---------------- rebuild() ----------------
@@ -657,6 +663,8 @@ class Corpus():
 
     # ---------------- query_by_id() ----------------
     def query_by_id(self, samples_positive, samples_unlabeled, sample_id):
+        tsm_positive = samples_positive.tsm
+        tsm_unlabeled = samples_unlabeled.tsm
 
         sensitive_words = {
                 ##u"立案":3.0,
@@ -672,7 +680,11 @@ class Corpus():
 
         try:
             sample_content = samples_unlabeled.db_content.Get(str(sample_id))
-            (_, category, date, title, key, url, content) = msgpack.loads(sample_content)
+            #(_, category, date, title, key, url, content) = msgpack.loads(sample_content)
+
+            (_, category, date, title, key, url, msgext) = decode_sample_meta(sample_content)
+            (version, content, (cat1, cat2, cat3)) = msgext
+
             print "sample id: %d" % (sample_id)
             print "category: %d" % (category)
             print "key: %s" % (key)
@@ -684,18 +696,20 @@ class Corpus():
 
             sample_terms, term_map = self.vocabulary.seg_content(content)
             print "sample_terms: %d terms_count: %d" % (sample_terms, len(term_map))
-            for term_id in term_map:
+            #for term_id in term_map:
+            terms_list = sorted_dict_by_values(term_map, reverse=True)
+            for (term_id, term_used_in_sample) in terms_list:
                 term_text = self.vocabulary.get_term_text(term_id)
-                sample_terms = term_map[term_id]
-                print "%s(%d): %d" % (term_text, term_id, sample_terms)
+                #term_used_in_sample = term_map[term_id]
+                print "%s(%d): %d" % (term_text, term_id, term_used_in_sample)
 
 
         except KeyError:
             print "Sample %d not found in db_content." % (sample_id)
 
-        db_tm = samples_unlabeled.tsm.open_db_tm()
+        db_sm = samples_unlabeled.tsm.open_db_sm()
         try:
-            str_sample_info = db_tm.Get(str(sample_id))
+            str_sample_info = db_sm.Get(str(sample_id))
             (category, sample_terms, term_map) = msgpack.loads(str_sample_info)
             print ""
             print "---------------- keywords ----------------"
@@ -704,7 +718,7 @@ class Corpus():
             for term_id in term_map:
                 term_text = self.vocabulary.get_term_text(term_id)
                 term_used = term_map[term_id]
-                (pd_word, speciality, popularity) = calculate_term_positive_degree(term_id, samples_positive, samples_unlabeled, self.sensitive_terms)
+                (pd_word, speciality, popularity) = calculate_term_positive_degree(term_id, tsm_positive, tsm_unlabeled, sensitive_terms)
                 terms[term_id] = (pd_word, speciality, popularity, term_used, term_text)
 
             terms_list = sorted_dict_by_values(terms, reverse = True)
@@ -712,8 +726,8 @@ class Corpus():
                 print "%s\t%d\t[%.6f,%.6f,%.6f]\t(id:%d)" % (term_text, term_used, pd_word, speciality, popularity, term_id)
 
         except KeyError:
-            print "Sample %d not found in db_tm." % (sample_id)
+            print "Sample %d not found in db_sm." % (sample_id)
 
-        samples_unlabeled.tsm.close_db(db_tm)
+        samples_unlabeled.tsm.close_db(db_sm)
 
 
