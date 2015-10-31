@@ -68,7 +68,7 @@ Dependencies:
 pip install xlrd xlwt xlsxwriter
 pip install docopt
 pip install bidict shutil leveldb msgpack-python requests
-pip install sklearn-learn sklearn-pandas statsmodels patsy seaborn 
+pip install sklearn sklearn-pandas statsmodels patsy seaborn 
 pip install jieba
 pip install textract beautifulsoup4  antiword python-docx python-pptx 
 
@@ -79,3 +79,6 @@ pip install json-c
 
 pip install gmpy2
 
+==================
+pip install ipython leveldb msgpack-python sklearn textract requests bidict
+ xlwt numpy scipy pandas gmpy2

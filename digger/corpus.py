@@ -43,7 +43,7 @@ from sample_feature_matrix import SampleFeatureMatrix
 from category_feature_matrix import CategoryFeatureMatrix
 from protocal import decode_sample_meta
 from categories import Categories
-from transform import import_samples_from_xls, export_samples_to_xls, export_urls_to_xls
+from transform import import_samples_from_xls, export_samples_to_xls, export_samples_to_svm, export_urls_to_xls
 from feature_weighting import FeatureWeight
 
 # ================ class Samples ================

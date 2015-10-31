@@ -84,6 +84,30 @@ class SampleFeatureMatrix():
         for category_id in cl:
             self.__category_id_map.setdefault(category_id, len(self.__category_id_map))
 
+    # ---------------- save_to_svm_file() ----------
+    def save_to_svmfile(self, svmfile, include_null_samples):
+        f = open(svmfile, 'wb+')
+
+        for sample_id in self.sf_matrix:
+            (category_id, feature_weights) = self.sf_matrix[sample_id]
+            if len(feature_weights) == 0:
+                if not include_null_samples:
+                    continue
+
+            category_idx = self.get_category_idx(category_id)
+            f.write("%d " % (category_idx))
+
+            features_idx = { self.get_feature_idx(feature_id):feature_weights[feature_id] for feature_id in feature_weights}
+            features_list = sorted_dict(features_idx)
+            for (feature_idx, feature_weight) in features_list:
+                if feature_weight.__class__ is int:
+                    f.write("%d:%d " % (feature_idx, feature_weight))
+                else:
+                    f.write("%d:%.6f " % (feature_idx, feature_weight))
+            f.write("\n")
+
+        f.close()
+
     # ---------------- set_sample_category() ----------
     def set_sample_category(self, sample_id, category_id):
         category_idx = self.__category_id_map.setdefault(category_id, len(self.__category_id_map))
@@ -196,30 +220,6 @@ class SampleFeatureMatrix():
             self.__feature_id_map[feature_id] = feature_id_map[feature_id]
         for category_id in category_id_map:
             self.__category_id_map[category_id] = category_id_map[category_id]
-
-    # ---------------- save_to_svm_file() ----------
-    def save_to_svmfile(self, svmfile, include_null_samples):
-        f = open(svmfile, 'wb+')
-
-        for sample_id in self.sf_matrix:
-            (category_id, feature_weights) = self.sf_matrix[sample_id]
-            if len(feature_weights) == 0:
-                if not include_null_samples:
-                    continue
-
-            category_idx = self.get_category_idx(category_id)
-            f.write("%d " % (category_idx))
-
-            features_idx = { self.get_feature_idx(feature_id):feature_weights[feature_id] for feature_id in feature_weights}
-            features_list = sorted_dict(features_idx)
-            for (feature_idx, feature_weight) in features_list:
-                if feature_weight.__class__ is int:
-                    f.write("%d:%d " % (feature_idx, feature_weight))
-                else:
-                    f.write("%d:%.6f " % (feature_idx, feature_weight))
-            f.write("\n")
-
-        f.close()
 
 
     # ---------------- load_from_svmfile() ----------

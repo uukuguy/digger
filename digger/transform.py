@@ -85,6 +85,14 @@ def import_samples_from_xls(samples, categories, xls_file):
     return batch_content
 
 
+from feature_weighting import FeatureWeight
+from sample_feature_matrix import SampleFeatureMatrix
+# ---------------- export_samples_to_svm() ----------------
+def export_samples_to_svm(samples, svm_file):
+    samples.load()
+    sfm = FeatureWeight.transform(samples.tsm, None, FeatureWeight.TFIDF)
+    sfm.save_to_svmfile(svm_file, False)
+
 # ---------------- export_samples_to_xls() ----------------
 def export_samples_to_xls(samples, xls_file):
 

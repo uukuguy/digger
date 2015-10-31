@@ -446,7 +446,7 @@ class TermSampleModel():
                 tm_matrix[term_id] = (term_id, (term_used, term_samples + 1, sample_map))
 
             #if rowidx % 1000 == 0:
-                #logging.debug(Logger.debug("rebuild_sample_matrix() %d/%d" % (rowidx, len(tm_matrix))))
+                #logging.debug(Logger.debug("rebuild_term_matrix() %d/%d" % (rowidx, len(tm_matrix))))
             rowidx += 1
 
         self.total_terms_used = total_terms_used
@@ -460,8 +460,6 @@ class TermSampleModel():
 
         logging.debug(Logger.debug("Rebuild sample matrix... %s" % (self.root_dir)))
         self.sm_matrix = self.rebuild_sample_matrix(db_content)
-
-        return
 
         if do_save:
             logging.debug(Logger.debug("Save vocabulary ..."))
