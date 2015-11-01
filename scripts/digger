@@ -34,12 +34,26 @@ from digger.fix import Fix
   U - Unlabeled samples
 '''
 
+from digger.utils import load_excel_to_rows
+def xxx(xls_file):
+    rows = load_excel_to_rows(xls_file)
+    num_samples = len(rows)
+    idx = 0
+    for row in rows:
+        content = row[u"CONTENT"]
+        txt_file = "/home/jwsu/tmp/xxx/%d.txt" % (idx)
+        h = open(txt_file, 'wb+')
+        h.write(content.encode('utf-8'))
+        h.close()
+        idx += 1
+
 # ---------------- do_import_samples() ----------------
 def do_import_samples(corpus_dir, samples_name, xls_file):
     corpus = Corpus(corpus_dir)
     corpus.vocabulary.load()
     samples = Samples(corpus, samples_name)
     samples.import_samples(xls_file)
+    #xxx(xls_file)
 
 # ---------------- do_rebuild() ----------------
 def do_rebuild(corpus_dir, samples_name):

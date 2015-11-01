@@ -80,5 +80,6 @@ pip install json-c
 pip install gmpy2
 
 ==================
+sudo apt-get install libgmp-dev libmpfr-dev libmpc-dev libxslt1-dev
 pip install ipython leveldb msgpack-python sklearn textract requests bidict
- xlwt numpy scipy pandas gmpy2
+ xlwt numpy scipy pandas gmpy2 jieba
