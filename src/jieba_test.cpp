@@ -14,15 +14,19 @@
 #include <vector>
 
 
-cppjieba::Jieba *jieba = NULL;
+//cppjieba::Jieba *jieba = NULL;
+cppjieba::PosTagger *jieba = NULL;
 
 int do_seg(const char *buf){
     //std::cout << buf << std::endl;
 
-    std::vector<std::string> words;
-    jieba->Cut(buf, words, true);
+    //std::vector<std::string> words;
+    //jieba->Cut(buf, words, true);
     //std::cout << limonp::join(words.begin(), words.end(), "/") << std::endl;
 
+    std::vector<std::pair<std::string, std::string> > tagres;
+    jieba->Tag(buf, tagres);
+    //std::cout << tagres << std::endl;
 
     return 0;
 }
@@ -52,7 +56,10 @@ int do_file(const char *file_name)
 
 int main(int argc, char *argv[])
 {
-    jieba = new cppjieba::Jieba("/home/jwsu/apps/jieba/dict/jieba.dict.utf8",
+    //jieba = new cppjieba::Jieba("/home/jwsu/apps/jieba/dict/jieba.dict.utf8",
+            //"/home/jwsu/apps/jieba/dict/hmm_model.utf8",
+            //"/home/jwsu/apps/jieba/dict/user.dict.utf8");
+    jieba = new cppjieba::PosTagger("/home/jwsu/apps/jieba/dict/jieba.dict.utf8",
             "/home/jwsu/apps/jieba/dict/hmm_model.utf8",
             "/home/jwsu/apps/jieba/dict/user.dict.utf8");
 
