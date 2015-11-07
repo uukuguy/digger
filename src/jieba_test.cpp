@@ -8,39 +8,52 @@
 #include <dirent.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <vector>
 
 
+const char *jieba_dict = "/Users/jwsu/apps/cppjieba/dict/jieba.dict.utf8";
+const char *hmm_model = "/Users/jwsu/apps/cppjieba/dict/hmm_model.utf8";
+const char *user_dict = "/Users/jwsu/apps/cppjieba/dict/user.dict.utf8";
+
 //cppjieba::Jieba *jieba = NULL;
 cppjieba::PosTagger *jieba = NULL;
 
-int do_seg(const char *buf){
-    //std::cout << buf << std::endl;
+std::string do_seg(const char *buf){
+    std::string strTxt = "";
 
-    //std::vector<std::string> words;
-    //jieba->Cut(buf, words, true);
-    //std::cout << limonp::join(words.begin(), words.end(), "/") << std::endl;
+    typedef std::vector<std::pair<std::string, std::string> > Tags;
+    Tags tags;
+    jieba->Tag(buf, tags);
+    
+    for ( Tags::iterator it = tags.begin() ; it != tags.end() ; it++ ){
+        std::pair<std::string, std::string>& tag = *it;
+        if ( tag.second == "n" || tag.second == "v" || tag.second == "vn" ) {
+            //std::cout << tag << " ";
+            strTxt += tag.first + ":" + tag.second + " ";
+        }
+    }
+    //std::cout << std::endl;
 
-    std::vector<std::pair<std::string, std::string> > tagres;
-    jieba->Tag(buf, tagres);
-    //std::cout << tagres << std::endl;
-
-    return 0;
+    return strTxt;
 }
 
-int do_file(const char *file_name)
+int do_file(const std::string &content_dir, const std::string &corpus_dir, const std::string &d_name)
 {
     std::fstream file;
 
-    file.open(file_name);//, std::ios::binary);
+    std::string content_filename = content_dir + "/" + d_name;
+    std::string corpus_filename = corpus_dir + "/" + d_name;
+
+    file.open(content_filename);
 
     file.seekg(0, std::ios::end);
     uint32_t file_len = file.tellg();
     file.seekg(0, std::ios::beg);
-    //std::cout << file_name << "(" << file_len << ")" << std::endl;
+    //std::cout << content_filename << "(" << file_len << ")" << std::endl;
 
     char *buf = new char[file_len+1];
     file.read(buf, file_len);
@@ -48,32 +61,32 @@ int do_file(const char *file_name)
 
     file.close();
 
-    do_seg(buf);
-
+    std::string strTxt = do_seg(buf);
     delete buf;
+
+    std::ofstream corpus_file(corpus_filename, std::ios::out | std::ios::trunc);
+    corpus_file.write(strTxt.c_str(), strTxt.length());
+    corpus_file.close();
+
     return 0;
 }
 
 int main(int argc, char *argv[])
 {
-    //jieba = new cppjieba::Jieba("/home/jwsu/apps/jieba/dict/jieba.dict.utf8",
-            //"/home/jwsu/apps/jieba/dict/hmm_model.utf8",
-            //"/home/jwsu/apps/jieba/dict/user.dict.utf8");
-    jieba = new cppjieba::PosTagger("/home/jwsu/apps/jieba/dict/jieba.dict.utf8",
-            "/home/jwsu/apps/jieba/dict/hmm_model.utf8",
-            "/home/jwsu/apps/jieba/dict/user.dict.utf8");
+    //jieba = new cppjieba::Jieba(jieba_dict, hmm_model, user_dict);
+    jieba = new cppjieba::PosTagger(jieba_dict, hmm_model, user_dict);
 
     DIR *pDir;
     struct dirent *ent;
-    const char *root_dir = argv[1];
+    const char *content_dir = argv[1];
+    const char *corpus_dir = argv[2];
     uint32_t i = 0;
 
-    pDir = opendir(root_dir);
+    pDir = opendir(content_dir);
 
     while ( (ent = readdir(pDir)) != NULL ){
         if ( ent->d_type & 8){
-            std::string file_name = std::string(root_dir) + "/" + ent->d_name;
-            do_file(file_name.c_str());
+            do_file(content_dir, corpus_dir, ent->d_name);
             if ( (i / 100) * 100 == i ){
                 std::cout << "(" << i << ")" << std::endl;
             }

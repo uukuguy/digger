@@ -35,14 +35,18 @@ from digger.fix import Fix
 '''
 
 from digger.utils import load_excel_to_rows
-def xxx(xls_file):
+def do_export_content(xls_file, txt_dir):
     rows = load_excel_to_rows(xls_file)
     num_samples = len(rows)
     idx = 0
     for row in rows:
         content = row[u"CONTENT"]
-        txt_file = "/home/jwsu/tmp/xxx/%d.txt" % (idx)
+        title = row[u'TITLE']
+        txt_file = "%s/%d.txt" % (txt_dir, idx)
         h = open(txt_file, 'wb+')
+        h.write("---------- Title ----------\n")
+        h.write(title.encode('utf-8'))
+        h.write("---------- Content ----------\n")
         h.write(content.encode('utf-8'))
         h.close()
         idx += 1
@@ -286,21 +290,39 @@ def cmd_export_samples(aa):
     corpus_dir = aa.get_arg('global', 'corpus_dir')
     samples_name = aa.get_arg('global', 'samples_name')
 
-    xls_file = aa.get_arg('exchange', 'xls_file')
-    if not xls_file is None:
-        corpus = Corpus(corpus_dir)
-        samples = Samples(corpus, samples_name)
-        #do_export_samples(corpus_dir, samples_name, xls_file)
-        export_samples_to_xls(samples, xls_file)
-    else:
+    to_xls = aa.get_arg('exchange', 'to_xls')
+    if to_xls:
+        xls_file = aa.get_arg('exchange', 'xls_file')
+        if not xls_file is None:
+            corpus = Corpus(corpus_dir)
+            samples = Samples(corpus, samples_name)
+            #do_export_samples(corpus_dir, samples_name, xls_file)
+            export_samples_to_xls(samples, xls_file)
+        else:
+            logging.error(Logger.error('Special xls_file'))
+
+    to_svm = aa.get_arg('exchange', 'to_svm')
+    if to_svm:
         svm_file = aa.get_arg('exchange', 'svm_file')
         if not svm_file is None:
             corpus = Corpus(corpus_dir)
             samples = Samples(corpus, samples_name)
             export_samples_to_svm(samples, svm_file)
         else:
-            logging.error(Logger.error('Special either xls_file or svm_file'))
+            logging.error(Logger.error('Special svm_file'))
 
+
+# ---------------- cmd_export_content() ----------------
+def cmd_export_content(aa):
+    corpus_dir = aa.get_arg('global', 'corpus_dir')
+    samples_name = aa.get_arg('global', 'samples_name')
+
+    xls_file = aa.get_arg('exchange', 'xls_file')
+    txt_dir = aa.get_arg('exchange', 'txt_dir')
+    if not xls_file is None and not txt_dir is None:
+        do_export_content(xls_file, txt_dir)
+    else:
+        logging.error(Logger.error('Special both xls_file and txt_dir'))
 
 # ---------------- cmd_query_keywords() ----------------
 def cmd_query_keywords(aa):
@@ -357,9 +379,19 @@ def update_args(aa, args):
     # xls_file options
     if hasattr(args, 'xls_file'):
         aa.update_arg('xls_file', args.xls_file, section='exchange')
+        aa.update_arg('to_xls', True, section='exchange')
+    else:
+        aa.update_arg('to_xls', True, section='exchange')
     # svm_file options
     if hasattr(args, 'svm_file'):
         aa.update_arg('svm_file', args.svm_file, section='exchange')
+        aa.update_arg('to_svm', True, section='exchange')
+    else:
+        aa.update_arg('to_svm', False, section='exchange')
+
+    # txt_dir options
+    if hasattr(args, 'txt_dir'):
+        aa.update_arg('txt_dir', args.txt_dir, section='exchange')
 
     # PULearning options
     if hasattr(args, 'positive_name'):
@@ -407,6 +439,12 @@ def main():
     parser_export_samples.add_argument('--xls_file', type=str, help='The Excel file name will be imported.', default=None)
     parser_export_samples.add_argument('--svm_file', type=str, help='The Excel file name will be imported.', default=None)
     parser_export_samples.set_defaults(func=cmd_export_samples)
+
+    # -------- export_content --------
+    parser_export_content = subparsers.add_parser('export_content', help='export content help')
+    parser_export_content.add_argument('--xls_file', type=str, help='The Excel file name will be exported.', default=None)
+    parser_export_content.add_argument('--txt_dir', type=str, help='The root dir of exported content.', default=None)
+    parser_export_content.set_defaults(func=cmd_export_content)
 
     # -------- query_keywords --------
     parser_query_keywords = subparsers.add_parser('query_keywords', help='query keywords help')
