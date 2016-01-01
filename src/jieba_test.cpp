@@ -15,9 +15,9 @@
 #include <vector>
 
 
-const char *jieba_dict = "/Users/jwsu/apps/cppjieba/dict/jieba.dict.utf8";
-const char *hmm_model = "/Users/jwsu/apps/cppjieba/dict/hmm_model.utf8";
-const char *user_dict = "/Users/jwsu/apps/cppjieba/dict/user.dict.utf8";
+const char *jieba_dict = "../jieba/dict/jieba.dict.utf8";
+const char *hmm_model = "../jieba/dict/hmm_model.utf8";
+const char *user_dict = "../jieba/dict/user.dict.utf8";
 
 //cppjieba::Jieba *jieba = NULL;
 cppjieba::PosTagger *jieba = NULL;
@@ -31,10 +31,10 @@ std::string do_seg(const char *buf){
     
     for ( Tags::iterator it = tags.begin() ; it != tags.end() ; it++ ){
         std::pair<std::string, std::string>& tag = *it;
-        if ( tag.second == "n" || tag.second == "v" || tag.second == "vn" ) {
+        //if ( tag.second == "n" || tag.second == "v" || tag.second == "vn" ) {
             //std::cout << tag << " ";
             strTxt += tag.first + ":" + tag.second + " ";
-        }
+        //}
     }
     //std::cout << std::endl;
 
@@ -48,7 +48,7 @@ int do_file(const std::string &content_dir, const std::string &corpus_dir, const
     std::string content_filename = content_dir + "/" + d_name;
     std::string corpus_filename = corpus_dir + "/" + d_name;
 
-    file.open(content_filename);
+    file.open(content_filename.c_str());
 
     file.seekg(0, std::ios::end);
     uint32_t file_len = file.tellg();
@@ -64,7 +64,7 @@ int do_file(const std::string &content_dir, const std::string &corpus_dir, const
     std::string strTxt = do_seg(buf);
     delete buf;
 
-    std::ofstream corpus_file(corpus_filename, std::ios::out | std::ios::trunc);
+    std::ofstream corpus_file(corpus_filename.c_str(), std::ios::out | std::ios::trunc);
     corpus_file.write(strTxt.c_str(), strTxt.length());
     corpus_file.close();
 
@@ -73,6 +73,11 @@ int do_file(const std::string &content_dir, const std::string &corpus_dir, const
 
 int main(int argc, char *argv[])
 {
+    if ( argc < 3 ){
+        std::cout << "Usage: " << argv[0] << " <content_dir> <corpus_dir>" << std::endl;
+        exit(-1);
+    }
+
     //jieba = new cppjieba::Jieba(jieba_dict, hmm_model, user_dict);
     jieba = new cppjieba::PosTagger(jieba_dict, hmm_model, user_dict);
 

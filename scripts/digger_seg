@@ -9,7 +9,7 @@ import jieba.posseg as pseg
 def is_chinese_word(u0):
     return u0 >= u'\u4e00' and u0 <= u'\u9fa5'
 
-def do_seg_file(filename):
+def do_seg_file(filename, verbose = False):
     f = open(filename)
     txt = f.read()
     f.close()
@@ -27,19 +27,22 @@ def do_seg_file(filename):
     for w in words:
         fet = w.word
         pos = w.flag
-        if pos != 'n' and pos != 'v' and pos != 'vn':
-            continue
-        #print fet, pos
+        #if pos != 'n' and pos != 'v' and pos != 'vn':
+            #continue
+        if verbose:
+            print fet, pos
 
 def main():
-    root_dir = sys.argv[1]
-    i = 0
-    for _, dirnames, filenames in os.walk(root_dir):
-        for filename in filenames:
-            do_seg_file(os.path.join(root_dir, filename))
-            if i % 100 == 0:
-                print "[%d] %s" % (i, filename)
-            i += 1
+    if os.path.isdir(sys.argv[1]):
+        i = 0
+        for _, dirnames, filenames in os.walk(root_dir):
+            for filename in filenames:
+                do_seg_file(os.path.join(root_dir, filename), False)
+                if i % 100 == 0:
+                    print "[%d] %s" % (i, filename)
+                i += 1
+    elif os.path.isfile(sys.argv[1]):
+        do_seg_file(sys.argv[1], True)
 
 if __name__ == '__main__':
     main()
