@@ -1,3 +1,0 @@
-Mon, 11 Jan 2016 18:01:14 main.py[line:45] INFO search: system.indexes,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
-Mon, 11 Jan 2016 18:01:14 main.py[line:45] INFO search: hotword_electric,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
-Mon, 11 Jan 2016 18:01:14 main.py[line:45] INFO search: sougou_weixin,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
