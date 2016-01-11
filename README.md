@@ -75,7 +75,7 @@ pip install textract beautifulsoup4  antiword python-docx python-pptx
 pip install bokeh scaly
 pip install flask tornado
 
-pip install json-c 
+pip install json-c  
 
 pip install gmpy2
 
@@ -83,3 +83,8 @@ pip install gmpy2
 sudo apt-get install libgmp-dev libmpfr-dev libmpc-dev libxslt1-dev
 pip install ipython leveldb msgpack-python sklearn textract requests bidict
  xlwt numpy scipy pandas gmpy2 jieba
+
+------ shogun ------
+cmake -DPYTHON_INCLUDE_DIR=/usr/local/Cellar/python/2.7.10_2/Frameworks/Python.framework/Headers -DPYTHON_LIBRARY=/usr/local/Cellar/python/2.7.10_2/Frameworks/Python.framework/Versions/2.7/lib/libpython2.7.dylib 
+-DPythonModular=ON -DCmdLineStatic=ON -DPythonStatic=ON -DRModular=ON -DRStatic=ON ..
+

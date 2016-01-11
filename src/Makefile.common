@@ -1,0 +1,34 @@
+
+CFLAGS_JEMALLOC=-DUSE_JEMALLOC -DHAVE_ATOMIC
+
+COMMON_CFLAGS= -g -fPIC -Wall -Wno-deprecated -Wno-unused-result 
+COMMON_CFLAGS += ${CFLAGS_JEMALLOC}
+COMMON_CFLAGS += -I../include/jieba -I/usr/local/include/json-c
+
+UNAME := $(shell uname)
+ifeq (${UNAME}, Linux)
+	COMMON_CFLAGS += -DOS_LINUX
+endif
+ifeq (${UNAME}, Darwin)
+	COMMON_CFLAGS += -DOS_DARWIN
+endif
+
+# ---------------- FINAL_CFLAGS ----------------
+FINAL_CFLAGS = ${COMMON_CFLAGS}
+FINAL_CFLAGS += ${CFLAGS}
+FINAL_CFLAGS += -std=gnu11
+
+# ---------------- FINAL_CXXFLAGS ----------------
+FINAL_CXXFLAGS = ${COMMON_CFLAGS}
+FINAL_CXXFLAGS += ${CXXFLAGS} -Wno-unused-private-field
+FINAL_CXXFLAGS += -std=gnu++11
+
+# ---------------- FINAL_LDFLAGS ----------------
+FINAL_LDFLAGS = ${LDFLAGS}
+
+%.cc.o: %.cc
+	${CC} ${FINAL_CXXFLAGS} -o $*.cc.o -c  $*.cc
+
+%.c.o: %.c
+	${CC} ${FINAL_CFLAGS} -o $*.c.o -c  $*.c 
+

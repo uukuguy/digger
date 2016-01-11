@@ -1,9 +1,24 @@
+TARGET = ../bin/udb
 
-all: jieba_test
+OBJS = logger.c.o \
+	   filesystem.c.o \
+	   utils.c.o \
+	   udb.cc.o
 
-jieba_test: jieba_test.o
-	${CC} -o jieba_test jieba_test.o -lstdc++ -lm
+include ./Makefile.common
 
-jieba_test.o: jieba_test.cpp
-	${CC} -c jieba_test.cpp -I../include/jieba
+# first try -mavx -maes, if fails, retry with -mavx and/or -maes removed, 
+# or with -mavx replaced by -msse4.1 or -msse4.2.
+CXXFLAGS += -mavx -maes
+
+all: ${TARGET}
+
+../bin:
+	mkdir -p ../bin
+
+${TARGET}: ../bin ${OBJS}
+	${CC} -o ${TARGET} ${OBJS} ${LDFLAGS} -lshogun -lleveldb -lstdc++ 
+
+clean:
+	rm -f ${TARGET} ${OBJS}
 
