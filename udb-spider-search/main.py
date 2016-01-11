@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 # vim: set et sw=4 ts=4 sts=4 ff=unix fenc=utf8:
 # Author: chenqian
@@ -95,7 +96,10 @@ def read_config(ctx, param, value):
 @click.option('--fieldnames', default='url,publish_time,title,text,type,keyword', help=u'查询的结果')
 @click.option('--search_collection', default='all', help=u'查询的collection名字')
 def cli(**kawrgs):
-    conn = pymongo.Connection(kawrgs['host'], kawrgs['port'])
+    #conn = pymongo.Connection(kawrgs['host'], kawrgs['port'])
+    conn = pymongo.MongoClient(kawrgs['host'], kawrgs['port'])
+    #conn = pymongo.MongoClient("mongodb://139.196.189.136:27017/")
+    #conn = pymongo.MongoClient("139.196.189.136", 27017)
     db = conn['resultdb']
     if kawrgs['search_collection'] != 'all':
         for coll_item_name in kawrgs['search_collection'].split(','):

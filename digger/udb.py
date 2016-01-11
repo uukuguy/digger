@@ -3,8 +3,12 @@
 
 import argparse
 import leveldb
+import pymongo
+import six
+import csv
 import logging
 import os
+import time
 from os import path
 from logger import Logger, AppWatch
 import msgpack
@@ -62,19 +66,76 @@ class Samples():
 
         self.db.Write(batch_content, sync=True)
 
+    def search_data(self, collection, begin_date, end_date):
+        """
+        根据条件查询
+        """
+        nbegin_date = int(time.mktime(map(eval, "{}-00-00-00-0-0-0".format(begin_date).split('-'))))
+        nend_date = int(time.mktime(map(eval, "{}-23-59-59-0-0-0".format(end_date).split('-'))))
+        condition = {'result.publish_time': {'$gte': nbegin_date, '$lte': nend_date}}
+        logging.info('search: {},{}'.format(collection.name, condition))
+        result = {}
+        # for item in collection.find(condition).sort('result.publish_time', pymongo.ASCENDING):
+        for item in collection.find(condition):
+            #result['url'] = item['url'].encode('utf-8')
+            #result['publish_time'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(item['result']['publish_time']))
+            result['title'] = item['result'].get('title', '').encode('utf-8')
+            result['text'] = item['result']['text'].encode('utf-8')
+            #result['type'] = item['result']['type'].encode('utf-8')
+            #result['keyword'] = item['result']['extra'].get('keyword', '').encode('utf-8')
+
+            title = result['title']
+            content = result['text']
+
+            if not content.empty():
+                sample_id = self.acquire_sample_id(1)
+                if sample_id % 1000 == 0:
+                    print sample_id, title
+                sample_data = (sample_id, title, content)
+                rowstr = msgpack.dumps(sample_data)
+                self.db.Put(str(sample_id), rowstr)
+
+
+    # ---------------- import_samples_from_mongodb() ----------------
+    def import_samples_from_mongodb(self, mongodb, dbname, begin_date, end_date):
+        mongo_client = pymongo.MongoClient(mongodb)
+        #mongo_client = pymongo.MongoClient('139.196.189.136', 27017)
+        db = mongo_client[dbname]
+        coll_item = db.get_collection(dbname)
+        self.search_data(coll_item, begin_date, end_date)
+
 # ---------------- cmd_import_samples() ----------------
 def cmd_import_samples(args):
 
-    xls_file = None
-    if hasattr(args, 'xls_file'):
-        xls_file = args.xls_file
     samples_name = None
     if hasattr(args, 'samples_name'):
         samples_name = args.samples_name
 
-    samples = Samples(samples_name)
-    samples.import_samples_from_xls(xls_file)
+    xls_file = None
+    if hasattr(args, 'xls_file'):
+        xls_file = args.xls_file
 
+    mongodb = None
+    if hasattr(args, 'mongodb'):
+        mongodb = args.mongodb
+
+    dbname = None
+    if hasattr(args, 'dbname'):
+        dbname = args.dbname
+
+    begin_date = None
+    if hasattr(args, 'begin_date'):
+        begin_date = args.begin_date
+
+    end_date = None
+    if hasattr(args, 'end_date'):
+        end_date = args.end_date
+
+    samples = Samples(samples_name)
+    if xls_file is not None:
+        samples.import_samples_from_xls(xls_file)
+    if mongodb is not None:
+        samples.import_samples_from_mongodb(mongodb, dbname, begin_date, end_date)
 
 # ---------------- main() ----------------
 def main():
@@ -84,8 +145,13 @@ def main():
 
     # -------- import_samples --------
     parser_import_samples = subparsers.add_parser('import_samples', help='import samples help')
-    parser_import_samples.add_argument('--xls_file', type=str, help='The Excel file name will be imported.')
     parser_import_samples.add_argument('--samples_name', type=str, help='Samples name.')
+    parser_import_samples.add_argument('--xls_file', type=str, help='The Excel file name will be imported.')
+    parser_import_samples.add_argument('--mongodb', type=str, help='Mongodb mongodb://host:port/.')
+    parser_import_samples.add_argument('--dbname', type=str, help='DB name in Mongodb.')
+    parser_import_samples.add_argument('--begin_date', type=str, help='Start date.')
+    parser_import_samples.add_argument('--end_date', type=str, help='End date.')
+
     parser_import_samples.set_defaults(func=cmd_import_samples)
 
     args = parser.parse_args()
