@@ -1,0 +1,21 @@
+Sun, 10 Jan 2016 01:45:36 main.py[line:44] INFO search: system.indexes,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:45:37 main.py[line:44] INFO search: hotword_electric,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:45:37 main.py[line:44] INFO search: sougou_weixin,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:45:56 main.py[line:44] INFO search: weibo_renmin,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:45:56 main.py[line:44] INFO search: news_360,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:45:56 main.py[line:44] INFO search: hotpoint_baidu,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:45:56 main.py[line:44] INFO search: news_baidu,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:45:56 main.py[line:44] INFO search: news_sougou,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:45:57 main.py[line:44] INFO search: weibo_xinhua,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:45:57 main.py[line:44] INFO search: weibo_qq,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:45:57 main.py[line:44] INFO search: baidu_site_search,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:45:58 main.py[line:44] INFO search: hotword_baidu,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:45:58 main.py[line:44] INFO search: weibo_sina,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:45:58 main.py[line:44] INFO search: news_baidu_get_old1,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:46:06 main.py[line:44] INFO search: sougou_weixin_test,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:46:06 main.py[line:44] INFO search: common_only_domain,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:46:15 main.py[line:44] INFO search: common,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:46:45 main.py[line:44] INFO search: baidu_tieba,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:48:23 main.py[line:44] INFO search: test_baidu_site,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:48:23 main.py[line:44] INFO search: test,{'result.publish_time': {'$lte': 1452009599, '$gte': 1451577600}}
+Sun, 10 Jan 2016 01:48:23 main.py[line:112] INFO ok

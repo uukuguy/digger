@@ -1,0 +1,8 @@
+{
+  "host":"139.196.189.136",
+  "port":27017,
+  "begin_date":"2016-01-01",
+  "end_date":"2016-01-05",
+  "fieldnames":"keyword,publish_time,title,text,type,url",
+  "search_collection":"all"
+}
